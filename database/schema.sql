@@ -1,22 +1,23 @@
-CREATE DATABASE IF NOT EXISTS healh_care
+CREATE DATABASE IF NOT EXISTS health_care
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
 
-USE healh_care;
+USE health_care;
 
 CREATE TABLE users (
     user_id         INT AUTO_INCREMENT PRIMARY KEY,
     full_name       VARCHAR(100)        NOT NULL,
     email           VARCHAR(150)        NOT NULL UNIQUE,
-    password_hash   VARCHAR(255)        NOT NULL,   -- password_hash() 生成，不要存明文
+    password_hash   VARCHAR(255)        NOT NULL,  
     phone           VARCHAR(20),
-    role            ENUM('patient', 'admin') NOT NULL DEFAULT 'patient',
+    role            ENUM('patient', 'doctor', 'admin') NOT NULL DEFAULT 'patient',
     created_at      TIMESTAMP           DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP           DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 CREATE TABLE doctors (
     doctor_id       INT AUTO_INCREMENT PRIMARY KEY,
+    user_id         INT                 NULL UNIQUE,
     full_name       VARCHAR(100)        NOT NULL,
     specialty       VARCHAR(100)        NOT NULL,  
     email           VARCHAR(150)        UNIQUE,
@@ -26,7 +27,9 @@ CREATE TABLE doctors (
     consultation_fee DECIMAL(10,2)      DEFAULT 0.00,
     is_active       BOOLEAN             DEFAULT TRUE,  
     created_at      TIMESTAMP           DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP           DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at      TIMESTAMP           DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE schedules (
@@ -50,6 +53,7 @@ CREATE TABLE appointments (
     doctor_id       INT                 NOT NULL,
     schedule_id     INT                 NOT NULL UNIQUE, 
     status          ENUM('confirmed', 'cancelled', 'completed', 'no_show') NOT NULL DEFAULT 'confirmed',
+    visit_type      ENUM('new_case', 'follow_up', 'specialist_referral', 'other') NOT NULL DEFAULT 'new_case',
     reason          VARCHAR(255),               
     booked_at       TIMESTAMP           DEFAULT CURRENT_TIMESTAMP,
     cancelled_at    TIMESTAMP           NULL,

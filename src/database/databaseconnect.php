@@ -48,7 +48,7 @@ try {
 			} catch(Exception $e){
 				// echo "Database has not been created<br>";
 			}
-			die("Database failed to create:" . $connect->error);
+			die("Database failed to create:" . $e->getMessage());
 		}
 	}
 	else {

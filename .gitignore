@@ -1,3 +1,5 @@
 file structure.txt
 *.log
 .env
+storage/*
+vendor/*

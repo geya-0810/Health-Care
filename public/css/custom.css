@@ -1,0 +1,122 @@
+:root {
+    --color-primary: #8BC63F;
+    --color-primary-dark: #6EA32E;
+    --color-primary-light: #EAF6D6;
+    --color-dark: #22281F;
+    --color-text: #3C3C3C;
+    --color-muted: #757575;
+    --color-border: #E7E7E7;
+    --radius: 10px;
+}
+
+/* ---------- Auth pages (login/register) ---------- */
+/* .auth-wrapper { min-height: calc(100vh - 160px); } */
+.auth-visual {
+    background: linear-gradient(180deg, rgba(34,40,31,0.55), rgba(34,40,31,0.75)),
+                url('../images/about-bg.jpg') center/cover;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 48px;
+    min-height: 480px;
+    border-radius: var(--radius);
+    color: #fff;
+}
+.auth-visual .eyebrow {
+    letter-spacing: 2px;
+    font-size: 0.78rem;
+    color: var(--color-primary);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.auth-visual h2 {
+    font-weight: 600;
+    font-size: 2rem;
+    margin-top: 10px;
+}
+.auth-card {
+    background: #fff;
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    padding: 48px;
+}
+.auth-card h3 { font-weight: 600; color: var(--color-dark); }
+.auth-card .form-label { font-weight: 500; font-size: 0.9rem; color: var(--color-dark); }
+.auth-card .form-control {
+    padding: 11px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+}
+.auth-card .form-control:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 0.2rem rgba(139, 198, 63, 0.18);
+}
+.auth-switch { font-size: 0.92rem; color: var(--color-muted); }
+.auth-switch a { color: var(--color-primary-dark); font-weight: 600; }
+
+
+
+
+
+/* ---------- Profile page ---------- */
+.profile-header {
+    background: var(--color-dark);
+    padding: 48px 0;
+    color: #fff;
+}
+.profile-avatar {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #fff;
+    border: 3px solid rgba(255,255,255,0.25);
+}
+.profile-tabs .nav-link {
+    color: var(--color-muted);
+    font-weight: 500;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 12px 22px;
+}
+.profile-tabs .nav-link.active {
+    color: var(--color-primary-dark);
+    background: transparent;
+    border-bottom: 3px solid var(--color-primary);
+}
+.card-health {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: #fff;
+}
+.appointment-item {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+.appointment-item + .appointment-item { margin-top: 14px; }
+.appointment-doctor-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--color-primary-light);
+    color: var(--color-primary-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+.badge-status-confirmed { background: var(--color-primary-light); color: var(--color-primary-dark); }
+.badge-status-cancelled { background: #FBE7E7; color: #C24545; }
+.badge-status-completed { background: #E9E9E9; color: #6B6B6B; }
+.badge-status-pending    { background: #FFF3D6; color: #A97A0B; }
