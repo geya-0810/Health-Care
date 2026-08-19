@@ -1,6 +1,8 @@
 <?php 
 // public/index.php
-require_once __DIR__ . '/header.php'; ?>
+require_once __DIR__ . '/../src/config/config.php';
+require_once __DIR__ . '/header.php'; 
+?>
 
 <!-- HOME -->
      <section id="home" class="slider" data-stellar-background-ratio="0.5">

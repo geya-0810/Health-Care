@@ -1,6 +1,9 @@
 <?php 
 // public/about_us.php
-require_once __DIR__ . '/header.php'; ?>
+require_once __DIR__ . '/../src/config/config.php';
+require_once __DIR__ . '/header.php'; 
+?>
+
 <!-- ABOUT -->
      <section id="about">
           <div class="container">

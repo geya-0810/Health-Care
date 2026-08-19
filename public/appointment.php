@@ -1,7 +1,6 @@
 <?php
 // public/appointment.php
-// require_once __DIR__ . '/../src/config/config.php';
-require_once __DIR__ . '/header.php';
+require_once __DIR__ . '/../src/config/config.php';
 
 // 预约必须登录（免得又要在表单里问一次姓名/email，重复存两份用户资料）
 AuthMiddleware::requireLogin();
@@ -49,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
     }
 }
 
-// require_once __DIR__ . '/header.php';
+require_once __DIR__ . '/header.php';
 ?>
 
 <!-- MAKE AN APPOINTMENT -->

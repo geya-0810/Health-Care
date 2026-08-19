@@ -1,9 +1,6 @@
 <?php
 // public/login.php
-// require_once __DIR__ . '/../src/config/config.php';
-$pageTitle  = 'Log In';
-$activePage = '';
-require_once __DIR__ . '/header.php';
+require_once __DIR__ . '/../src/config/config.php';
 
 // 已登录就不用再看登录页
 AuthMiddleware::redirectIfLoggedIn();
@@ -40,9 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// $pageTitle  = 'Log In';
-// $activePage = '';
-// require_once __DIR__ . '/header.php';
+$pageTitle  = 'Log In';
+$activePage = '';
+require_once __DIR__ . '/header.php';
 ?>
 
 <div class="auth-wrapper d-flex align-items-center py-5">

@@ -1,10 +1,7 @@
 <?php
 // public/register.php
 // 只用于 patient 自助注册。doctor / admin 账号由 master admin 在后台创建（role写死不给前端选）
-// require_once __DIR__ . '/../src/config/config.php';
-$pageTitle  = 'Register';
-$activePage = '';
-require_once __DIR__ . '/header.php';
+require_once __DIR__ . '/../src/config/config.php';
 
 AuthMiddleware::redirectIfLoggedIn();
 
@@ -51,9 +48,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// $pageTitle  = 'Register';
-// $activePage = '';
-// require_once __DIR__ . '/header.php';
+$pageTitle  = 'Register';
+$activePage = '';
+require_once __DIR__ . '/header.php';
 ?>
 
 <div class="auth-wrapper d-flex align-items-center py-5">

@@ -1,4 +1,3 @@
-<?php require_once __DIR__ . '/../src/config/config.php'; ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -82,8 +81,8 @@ http://www.tooplate.com/view/2098-health
                          <li><a href="index.php" class="smoothScroll">Home</a></li>
                          <li><a href="about_us.php" class="smoothScroll">About Us</a></li>
                          <li><a href="doctors.php" class="smoothScroll">Doctors</a></li>
-                         <li><a href="news-detail.html" class="smoothScroll">News</a></li>
-                         <li class="appointment-btn"><a href="appointment.php">Make an appointment</a></li>
+                         <!-- <li><a href="news-detail.html" class="smoothScroll">News</a></li>
+                         <li class="appointment-btn"><a href="appointment.php">Make an appointment</a></li> -->
                          <?php if (!isset($_SESSION['user_id'])): ?>
                               <li><a href="login.php" class="smoothScroll">Login</a></li>
                               <li><a href="register.php" class="smoothScroll">Register</a></li>

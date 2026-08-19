@@ -1,6 +1,5 @@
 <?php
 // src/database/Database.php
-// 单例封装：整个请求生命周期只连接一次数据库，models/services统一通过这里拿PDO
 
 class Database
 {

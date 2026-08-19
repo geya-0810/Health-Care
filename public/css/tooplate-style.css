@@ -508,10 +508,20 @@ http://www.tooplate.com/view/2098-health
     position: relative;
     overflow: hidden;
     cursor: pointer;
+    height: 540px;
+    align-items: flex-end;
+    display: flex;
+    background-size: contain;
+    margin-bottom: 30px;
+    border: 1px solid #e9e9e9;
   }
 
   .team-info {
     padding: 20px 30px 0 30px;
+    background-color: white;
+    width: 100%;
+    height: min-content;
+    position: relative;
   }
 
   .team-contact-info {
@@ -563,7 +573,24 @@ http://www.tooplate.com/view/2098-health
     top: -22em;
   }
 
+  .doctor-btn {
+    position: absolute;
+    left: 50%;
+    -ms-transform: translate(-50%, -50%);
+    transform: translate(-50%, 30%);
+    width: max-content;
+    padding: 4px 16px;
+  }
 
+  .doctor-btn:hover {
+    color: lightgray  ;
+    text-decoration: none;
+  }
+
+  .doctor-btn a:hover {
+    color: #393939;
+    font-weight: 500;
+  }
 
   /*---------------------------------------
      SERVICE              

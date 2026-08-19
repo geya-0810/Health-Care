@@ -1,197 +1,257 @@
 <?php
 // public/profile.php
-session_start();
-$pageTitle  = 'My Profile';
-$activePage = 'profile';
-require_once __DIR__ . '/header.php';
+require_once __DIR__ . '/../src/config/config.php';
 
-    // if (!isset($_SESSION['user_id'])) {
-    //     header('Location: login.php');
-    //     exit;
-    // }
+AuthMiddleware::requireLogin();
 
-// TODO: 用真实数据替换以下部分
-// $userId = $_SESSION['user_id'];
-// $user = (new UserService())->find($userId);
-// $appointments = (new BookingService())->getAppointmentsByPatient($userId);
+$db        = Database::getConnection();
+$userId    = $_SESSION['user_id'];
+$booking   = new BookingService($db);
 
-$user = [
-    'full_name' => 'Tan Wei Ling',
-    'email'     => 'weiling.tan@example.com',
-    'phone'     => '012-987 6543',
-];
+$errors  = [];
+$notices = [];
 
-$appointments = [
-    ['doctor' => 'Dr. Lim Chee Keong', 'specialty' => 'General Practice', 'date' => '20 Aug 2026', 'time' => '9:00 AM', 'status' => 'confirmed'],
-    ['doctor' => 'Dr. Nurul Huda',     'specialty' => 'Pediatrics',       'date' => '25 Aug 2026', 'time' => '10:30 AM', 'status' => 'pending'],
-    ['doctor' => 'Dr. Lim Chee Keong', 'specialty' => 'General Practice', 'date' => '02 Jul 2026', 'time' => '9:30 AM', 'status' => 'completed'],
-    ['doctor' => 'Dr. Nurul Huda',     'specialty' => 'Pediatrics',       'date' => '18 Jun 2026', 'time' => '11:00 AM', 'status' => 'cancelled'],
-];
+if (isset($_GET['booked'])) {
+    $notices[] = 'Your appointment has been confirmed.';
+}
 
-$upcoming = array_filter($appointments, fn($a) => in_array($a['status'], ['confirmed', 'pending']));
-$past     = array_filter($appointments, fn($a) => in_array($a['status'], ['completed', 'cancelled']));
+// ---------- 处理表单动作 ----------
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+
+    // 取消预约
+    if ($action === 'cancel_appointment') {
+        $appointmentId = (int) ($_POST['appointment_id'] ?? 0);
+        try {
+            $booking->cancelAppointment($appointmentId, $userId);
+            $notices[] = 'Appointment cancelled.';
+        } catch (RuntimeException $e) {
+            $errors[] = $e->getMessage();
+        } catch (Throwable $e) {
+            error_log('Cancel appointment failed: ' . $e->getMessage());
+            $errors[] = 'Something went wrong. Please try again.';
+        }
+    }
+
+    // 更新个人资料
+    if ($action === 'update_profile') {
+        $fullName = trim($_POST['full_name'] ?? '');
+        $email    = trim($_POST['email'] ?? '');
+        $phone    = trim($_POST['phone'] ?? '');
+
+        if ($fullName === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Please provide a valid name and email.';
+        } else {
+            try {
+                User::update($db, $userId, ['full_name' => $fullName, 'email' => $email, 'phone' => $phone]);
+                $_SESSION['full_name'] = $fullName;
+                $notices[] = 'Profile updated.';
+            } catch (Throwable $e) {
+                error_log('Profile update failed: ' . $e->getMessage());
+                $errors[] = 'Could not update profile. The email might already be in use.';
+            }
+        }
+    }
+
+    // 修改密码
+    if ($action === 'change_password') {
+        $current = $_POST['current_password'] ?? '';
+        $new     = $_POST['new_password'] ?? '';
+        $confirm = $_POST['confirm_password'] ?? '';
+
+        $user = User::findById($db, $userId);
+
+        if (!password_verify($current, $user['password_hash'])) {
+            $errors[] = 'Current password is incorrect.';
+        } elseif (strlen($new) < 8) {
+            $errors[] = 'New password must be at least 8 characters.';
+        } elseif ($new !== $confirm) {
+            $errors[] = 'New passwords do not match.';
+        } else {
+            User::updatePassword($db, $userId, password_hash($new, PASSWORD_DEFAULT));
+            $notices[] = 'Password updated.';
+        }
+    }
+}
+
+// ---------- 拉取最新数据 ----------
+$user         = User::findById($db, $userId);
+$appointments = $booking->getAppointmentsByPatient($userId);
+$upcoming     = $appointments['upcoming'];
+$past         = $appointments['past'];
 
 function initials(string $name): string {
-    $parts = explode(' ', trim($name));
+    $parts = preg_split('/\s+/', trim($name));
     $letters = array_map(fn($p) => mb_strtoupper(mb_substr($p, 0, 1)), array_slice($parts, 0, 2));
     return implode('', $letters);
 }
 
-function statusBadge(string $status): string {
+function statusLabel(string $status): string {
     $map = [
-        'confirmed' => 'badge-status-confirmed',
-        'pending'   => 'badge-status-pending',
-        'completed' => 'badge-status-completed',
-        'cancelled' => 'badge-status-cancelled',
+        'confirmed' => 'label-success',
+        'cancelled' => 'label-danger',
+        'completed' => 'label-default',
+        'no_show'   => 'label-warning',
     ];
-    $class = $map[$status] ?? 'badge-status-pending';
-    return '<span class="badge rounded-pill ' . $class . ' px-3 py-2">' . ucfirst($status) . '</span>';
+    $class = $map[$status] ?? 'label-default';
+    return '<span class="label ' . $class . '">' . ucfirst(str_replace('_', ' ', $status)) . '</span>';
 }
 
+require_once __DIR__ . '/header.php';
 ?>
 
-<!-- Profile header -->
-<div class="profile-header">
-    <div class="container d-flex align-items-center gap-3">
-        <div class="profile-avatar"><?= htmlspecialchars(initials($user['full_name'])) ?></div>
-        <div>
-            <h4 class="mb-1"><?= htmlspecialchars($user['full_name']) ?></h4>
-            <div style="color:rgba(255,255,255,0.7)"><?= htmlspecialchars($user['email']) ?></div>
-        </div>
-    </div>
-</div>
+<section id="profile-page" style="padding:60px 0; min-height:60vh;">
+    <div class="container">
 
-<div class="container py-5">
-
-    <ul class="nav profile-tabs mb-4" id="profileTab" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-appointments" type="button">
-                <i class="ti ti-calendar-event me-1"></i>My Appointments
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-info" type="button">
-                <i class="ti ti-user me-1"></i>Profile Info
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-security" type="button">
-                <i class="ti ti-lock me-1"></i>Security
-            </button>
-        </li>
-    </ul>
-
-    <div class="tab-content">
-
-        <!-- ===================== APPOINTMENTS ===================== -->
-        <div class="tab-pane fade show active" id="tab-appointments">
-
-            <ul class="nav nav-pills mb-4 small" id="apptSubTab">
-                <li class="nav-item">
-                    <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#appt-upcoming" type="button">
-                        Upcoming <span class="badge bg-secondary ms-1"><?= count($upcoming) ?></span>
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#appt-past" type="button">
-                        Past <span class="badge bg-secondary ms-1"><?= count($past) ?></span>
-                    </button>
-                </li>
-            </ul>
-
-            <div class="tab-content">
-                <!-- Upcoming -->
-                <div class="tab-pane fade show active" id="appt-upcoming">
-                    <?php if (empty($upcoming)): ?>
-                        <p class="text-muted">You have no upcoming appointments.</p>
-                    <?php else: foreach ($upcoming as $a): ?>
-                        <div class="appointment-item">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="appointment-doctor-avatar"><?= htmlspecialchars(initials($a['doctor'])) ?></div>
-                                <div>
-                                    <div class="fw-semibold"><?= htmlspecialchars($a['doctor']) ?></div>
-                                    <div class="text-muted small"><?= htmlspecialchars($a['specialty']) ?></div>
-                                </div>
-                            </div>
-                            <div class="text-center d-none d-md-block">
-                                <div class="fw-semibold"><?= htmlspecialchars($a['date']) ?></div>
-                                <div class="text-muted small"><?= htmlspecialchars($a['time']) ?></div>
-                            </div>
-                            <div class="d-flex align-items-center gap-3">
-                                <?= statusBadge($a['status']) ?>
-                                <button class="btn btn-sm btn-outline-danger" type="button">Cancel</button>
-                            </div>
-                        </div>
-                    <?php endforeach; endif; ?>
+        <!-- Profile header -->
+        <div class="row" style="margin-bottom:30px;">
+            <div class="col-md-12" style="display:flex; align-items:center; gap:20px;">
+                <div style="width:70px;height:70px;border-radius:50%;background:#8BC63F;color:#fff;
+                            display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:600;">
+                    <?= htmlspecialchars(initials($user['full_name'])) ?>
                 </div>
-
-                <!-- Past -->
-                <div class="tab-pane fade" id="appt-past">
-                    <?php if (empty($past)): ?>
-                        <p class="text-muted">No past appointments yet.</p>
-                    <?php else: foreach ($past as $a): ?>
-                        <div class="appointment-item">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="appointment-doctor-avatar"><?= htmlspecialchars(initials($a['doctor'])) ?></div>
-                                <div>
-                                    <div class="fw-semibold"><?= htmlspecialchars($a['doctor']) ?></div>
-                                    <div class="text-muted small"><?= htmlspecialchars($a['specialty']) ?></div>
-                                </div>
-                            </div>
-                            <div class="text-center d-none d-md-block">
-                                <div class="fw-semibold"><?= htmlspecialchars($a['date']) ?></div>
-                                <div class="text-muted small"><?= htmlspecialchars($a['time']) ?></div>
-                            </div>
-                            <div><?= statusBadge($a['status']) ?></div>
-                        </div>
-                    <?php endforeach; endif; ?>
+                <div>
+                    <h3 style="margin:0;"><?= htmlspecialchars($user['full_name']) ?></h3>
+                    <p style="margin:0;color:#999;"><?= htmlspecialchars($user['email']) ?></p>
                 </div>
             </div>
         </div>
 
-        <!-- ===================== PROFILE INFO ===================== -->
-        <div class="tab-pane fade" id="tab-info">
-            <div class="card-health p-4" style="max-width:560px">
-                <form method="POST" action="update-profile.php">
-                    <div class="mb-3">
-                        <label class="form-label">Full name</label>
-                        <input type="text" name="full_name" class="form-control" value="<?= htmlspecialchars($user['full_name']) ?>">
+        <?php foreach ($notices as $n): ?>
+            <div class="alert alert-success"><?= htmlspecialchars($n) ?></div>
+        <?php endforeach; ?>
+        <?php foreach ($errors as $e): ?>
+            <div class="alert alert-danger"><?= htmlspecialchars($e) ?></div>
+        <?php endforeach; ?>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs" role="tablist" style="margin-bottom:24px;">
+            <li role="presentation" class="active"><a href="#tab-appointments" aria-controls="tab-appointments" role="tab" data-toggle="tab">My Appointments</a></li>
+            <li role="presentation"><a href="#tab-info" aria-controls="tab-info" role="tab" data-toggle="tab">Profile Info</a></li>
+            <li role="presentation"><a href="#tab-security" aria-controls="tab-security" role="tab" data-toggle="tab">Security</a></li>
+        </ul>
+
+        <div class="tab-content">
+
+            <!-- ===== My Appointments ===== -->
+            <div role="tabpanel" class="tab-pane active" id="tab-appointments">
+
+                <h4>Upcoming (<?= count($upcoming) ?>)</h4>
+                <?php if (empty($upcoming)): ?>
+                    <p class="text-muted">No upcoming appointments. <a href="appointment.php">Book one now</a>.</p>
+                <?php else: ?>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Doctor</th>
+                                <th>Specialty</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Visit Type</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($upcoming as $a): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($a['doctor_name']) ?></td>
+                                <td><?= htmlspecialchars($a['specialty']) ?></td>
+                                <td><?= htmlspecialchars($a['slot_date']) ?></td>
+                                <td><?= substr($a['start_time'], 0, 5) ?></td>
+                                <td><?= ucfirst(str_replace('_', ' ', $a['visit_type'])) ?></td>
+                                <td><?= statusLabel($a['status']) ?></td>
+                                <td>
+                                    <?php if ($a['status'] === 'confirmed'): ?>
+                                        <form method="post" action="profile.php" style="margin:0;"
+                                              onsubmit="return confirm('Cancel this appointment?');">
+                                            <input type="hidden" name="action" value="cancel_appointment">
+                                            <input type="hidden" name="appointment_id" value="<?= (int) $a['appointment_id'] ?>">
+                                            <button type="submit" class="btn btn-danger btn-xs">Cancel</button>
+                                        </form>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+
+                <h4 style="margin-top:30px;">Past (<?= count($past) ?>)</h4>
+                <?php if (empty($past)): ?>
+                    <p class="text-muted">No past appointments yet.</p>
+                <?php else: ?>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Doctor</th>
+                                <th>Specialty</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Visit Type</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($past as $a): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($a['doctor_name']) ?></td>
+                                <td><?= htmlspecialchars($a['specialty']) ?></td>
+                                <td><?= htmlspecialchars($a['slot_date']) ?></td>
+                                <td><?= substr($a['start_time'], 0, 5) ?></td>
+                                <td><?= ucfirst(str_replace('_', ' ', $a['visit_type'])) ?></td>
+                                <td><?= statusLabel($a['status']) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            </div>
+
+            <!-- ===== Profile Info ===== -->
+            <div role="tabpanel" class="tab-pane" id="tab-info">
+                <form method="post" action="profile.php" class="form-horizontal" style="max-width:500px;">
+                    <input type="hidden" name="action" value="update_profile">
+
+                    <div class="form-group">
+                        <label>Full name</label>
+                        <input type="text" name="full_name" class="form-control" value="<?= htmlspecialchars($user['full_name']) ?>" required>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Email address</label>
-                        <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($user['email']) ?>">
+                    <div class="form-group">
+                        <label>Email address</label>
+                        <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($user['email']) ?>" required>
                     </div>
-                    <div class="mb-4">
-                        <label class="form-label">Phone number</label>
-                        <input type="tel" name="phone" class="form-control" value="<?= htmlspecialchars($user['phone']) ?>">
+                    <div class="form-group">
+                        <label>Phone number</label>
+                        <input type="tel" name="phone" class="form-control" value="<?= htmlspecialchars($user['phone'] ?? '') ?>">
                     </div>
-                    <button type="submit" class="btn btn-health px-4">Save changes</button>
+                    <button type="submit" class="btn btn-primary" style="background:#8BC63F;border-color:#8BC63F;">Save changes</button>
                 </form>
             </div>
-        </div>
 
-        <!-- ===================== SECURITY ===================== -->
-        <div class="tab-pane fade" id="tab-security">
-            <div class="card-health p-4" style="max-width:560px">
-                <form method="POST" action="change-password.php">
-                    <div class="mb-3">
-                        <label class="form-label">Current password</label>
-                        <input type="password" name="current_password" class="form-control">
+            <!-- ===== Security ===== -->
+            <div role="tabpanel" class="tab-pane" id="tab-security">
+                <form method="post" action="profile.php" class="form-horizontal" style="max-width:500px;">
+                    <input type="hidden" name="action" value="change_password">
+
+                    <div class="form-group">
+                        <label>Current password</label>
+                        <input type="password" name="current_password" class="form-control" required>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">New password</label>
-                        <input type="password" name="new_password" class="form-control">
+                    <div class="form-group">
+                        <label>New password</label>
+                        <input type="password" name="new_password" class="form-control" required>
                     </div>
-                    <div class="mb-4">
-                        <label class="form-label">Confirm new password</label>
-                        <input type="password" name="confirm_password" class="form-control">
+                    <div class="form-group">
+                        <label>Confirm new password</label>
+                        <input type="password" name="confirm_password" class="form-control" required>
                     </div>
-                    <button type="submit" class="btn btn-health px-4">Update password</button>
+                    <button type="submit" class="btn btn-primary" style="background:#8BC63F;border-color:#8BC63F;">Update password</button>
                 </form>
             </div>
-        </div>
 
+        </div>
     </div>
-</div>
+</section>
 
 <?php require_once __DIR__ . '/footer.php'; ?>
