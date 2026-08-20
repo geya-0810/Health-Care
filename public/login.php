@@ -2,7 +2,7 @@
 // public/login.php
 require_once __DIR__ . '/../src/config/config.php';
 
-// 已登录就不用再看登录页
+// Already authenticated users do not need to see the login page.
 AuthMiddleware::redirectIfLoggedIn();
 
 $errors = [];
@@ -17,21 +17,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Please enter both email and password.';
     } else {
         $auth = new AuthService(Database::getConnection());
-        $user = $auth->attemptLogin($email, $password);
+        try {
+            $user = $auth->attemptLogin($email, $password);
+        } catch (RuntimeException $e) {
+            $user = null;
+            $errors[] = $e->getMessage(); // Message shown when an account is deactivated.
+        }
 
         if ($user) {
             $auth->startSession($user);
 
-            // 按角色跳转到各自的首页
-            // doctor/admin dashboard做好之前先统一导去profile.php，避免404
+            // Redirect users to the appropriate home page by role.
+            // Until the doctor/admin dashboards are ready, route them to profile.php to avoid a 404.
             $redirectMap = [
                 'patient' => 'profile.php',
-                'doctor'  => 'profile.php',   // TODO: 做好 doctor/dashboard.php 后改成 'doctor/dashboard.php'
-                'admin'   => 'profile.php',   // TODO: 做好 admin/dashboard.php 后改成 'admin/dashboard.php'
+                'doctor'  => 'profile.php',
+                'assist'  => 'admin/manage-schedules.php',
+                'admin'   => 'admin/dashboard.php',
             ];
             header('Location: ' . ($redirectMap[$user['role']] ?? 'profile.php'));
             exit;
-        } else {
+        } elseif (empty($errors)) {
             $errors[] = 'Incorrect email or password.';
         }
     }

@@ -2,17 +2,17 @@
 // public/appointment.php
 require_once __DIR__ . '/../src/config/config.php';
 
-// 预约必须登录（免得又要在表单里问一次姓名/email，重复存两份用户资料）
+// Login is required so the form does not duplicate the user's name and email.
 AuthMiddleware::requireLogin();
 
 $db = Database::getConnection();
 $patientId = $_SESSION['user_id'];
 
-$doctors    = Doctor::all($db);                 // 下拉选医生（取代原本跟db无关的Department下拉）
+$doctors    = Doctor::all($db);                 // Populate the doctor dropdown instead of the unrelated Department dropdown.
 $errors     = [];
 $successMsg = null;
 
-// 当前选中的医生/日期（用GET保存状态，方便"查看空档"时刷新页面不丢失表单）
+// Keep the selected doctor/date in GET so refreshing after viewing slots does not clear the form.
 $selectedDoctorId = isset($_GET['doctor_id']) ? (int) $_GET['doctor_id'] : (isset($_POST['doctor_id']) ? (int) $_POST['doctor_id'] : 0);
 $selectedDate     = $_GET['date'] ?? $_POST['date'] ?? '';
 
@@ -21,7 +21,7 @@ if ($selectedDoctorId && $selectedDate) {
     $availableSlots = Schedule::availableSlots($db, $selectedDoctorId, $selectedDate);
 }
 
-// ---------- 提交预约 ----------
+// ---------- Submit appointment ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
     $scheduleId = (int) ($_POST['schedule_id'] ?? 0);
     $visitType  = $_POST['visit_type'] ?? 'new_case';
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
             header('Location: profile.php?booked=1');
             exit;
         } catch (RuntimeException $e) {
-            // 例如slot被别人抢先约走了 —— 重新拉一次最新空档给用户看
+            // For example, another user booked the slot first; reload the latest availability.
             $errors[] = $e->getMessage();
             $availableSlots = Schedule::availableSlots($db, $selectedDoctorId, $selectedDate);
         } catch (Throwable $e) {
@@ -70,7 +70,7 @@ require_once __DIR__ . '/header.php';
                               </div>
                          <?php endif; ?>
 
-                         <!-- STEP 1: 选医生 + 日期，查看空档 -->
+                         <!-- STEP 1: Select a doctor and date, then view available slots. -->
                          <form id="check-availability-form" role="form" method="get" action="appointment.php">
 
                               <div class="section-title wow fadeInUp" data-wow-delay="0.4s">
@@ -106,7 +106,7 @@ require_once __DIR__ . '/header.php';
                               </div>
                          </form>
 
-                         <!-- STEP 2: 选空档时段 + 补充资料 + 确认预约 -->
+                         <!-- STEP 2: Select a slot, add details, and confirm the appointment. -->
                          <?php if ($selectedDoctorId && $selectedDate): ?>
                               <form id="appointment-form" role="form" method="post" action="appointment.php" style="margin-top:24px;">
                                    <input type="hidden" name="doctor_id" value="<?= $selectedDoctorId ?>">

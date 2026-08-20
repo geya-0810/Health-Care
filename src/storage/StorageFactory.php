@@ -1,7 +1,7 @@
 <?php
 // src/storage/StorageFactory.php
-// 业务代码统一用 StorageFactory::make() 拿到当前环境该用的storage实例
-// 本地开发 .env 设 STORAGE_DRIVER=local，上云后改成 STORAGE_DRIVER=s3 —— 不用改任何业务代码
+// Business code uses StorageFactory::make() to get the storage instance for the current environment.
+// Set STORAGE_DRIVER=local in .env for local development and STORAGE_DRIVER=s3 in the cloud; no business code changes are needed.
 
 class StorageFactory
 {

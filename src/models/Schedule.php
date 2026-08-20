@@ -3,7 +3,7 @@
 
 class Schedule
 {
-    // 某个医生在某天的可预约时段（只显示 status='available'）
+    // Available slots for a doctor on a date (only status='available').
     public static function availableSlots(PDO $db, int $doctorId, string $date): array
     {
         $stmt = $db->prepare(
@@ -15,7 +15,7 @@ class Schedule
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Admin用：某医生某天的所有slot（含已被约的），用来画排班表
+    // Admin view: all slots for a doctor on a date, including booked slots, for the schedule.
     public static function forDoctorOnDate(PDO $db, int $doctorId, string $date): array
     {
         $stmt = $db->prepare(
@@ -33,7 +33,7 @@ class Schedule
         return $row ?: null;
     }
 
-    // Admin开放新的slot
+    // Admin opens a new slot.
     public static function create(PDO $db, int $doctorId, string $date, string $startTime, string $endTime): int
     {
         $stmt = $db->prepare(
@@ -57,7 +57,7 @@ class Schedule
 
     public static function delete(PDO $db, int $scheduleId): bool
     {
-        // 只允许删除还没被约的slot
+        // Only slots without bookings may be deleted.
         $stmt = $db->prepare("DELETE FROM schedules WHERE schedule_id = :id AND status = 'available'");
         return $stmt->execute(['id' => $scheduleId]);
     }

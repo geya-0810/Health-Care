@@ -34,6 +34,24 @@ class User
         ]);
         return (int) $db->lastInsertId();
     }
+    
+    // Used by admin/assistant account editing in manage-accounts.php; includes is_active.
+    public static function adminUpdate(PDO $db, int $id, array $data): bool
+    {
+        $stmt = $db->prepare(
+            'UPDATE users SET full_name = :full_name, email = :email, phone = :phone, is_active = :is_active
+             WHERE user_id = :id'
+        );
+        return $stmt->execute([
+            'full_name' => $data['full_name'],
+            'email'     => $data['email'],
+            'phone'     => $data['phone'] ?? null,
+            'is_active' => $data['is_active'] ?? 1,
+            'id'        => $id,
+        ]);
+    }
+
+
 
     public static function update(PDO $db, int $id, array $data): bool
     {

@@ -23,8 +23,8 @@ ini_set('error_log', __DIR__ . '/../log/php_errors.log');
 date_default_timezone_set($_ENV['APP_TIMEZONE'] ?? 'Asia/Kuala_Lumpur');
 
 // ---------- App constants ----------
-define('APP_URL', rtrim($_ENV['BASE_URL'] ?? 'http://localhost/Cloud Computing/public', '/'));
-define('STORAGE_DRIVER', $_ENV['STORAGE_DRIVER'] ?? 'local'); // 'local' | 's3' —— 迁移云端时只改.env这一行
+define('APP_URL', rtrim($_ENV['BASE_URL'] ?? 'http://localhost/Cloud_Computing/public', '/'));
+define('STORAGE_DRIVER', $_ENV['STORAGE_DRIVER'] ?? 'local'); // 'local' | 's3' - change only this .env value when migrating to the cloud.
 
 // ---------- Autoload project classes (no Composer PSR-4, simple require map) ----------
 require_once __DIR__ . '/../database/Database.php';
@@ -34,6 +34,7 @@ require_once __DIR__ . '/../models/Schedule.php';
 require_once __DIR__ . '/../models/Appointment.php';
 require_once __DIR__ . '/../services/AuthService.php';
 require_once __DIR__ . '/../services/BookingService.php';
+require_once __DIR__ . '/../services/MailService.php';
 require_once __DIR__ . '/../services/NotificationService.php';
 require_once __DIR__ . '/../middleware/AuthMiddleware.php';
 require_once __DIR__ . '/../storage/StorageInterface.php';

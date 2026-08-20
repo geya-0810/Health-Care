@@ -3,3 +3,5 @@ file structure.txt
 .env
 storage/*
 vendor/*
+composer.*
+*.backup.*

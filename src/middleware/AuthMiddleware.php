@@ -1,8 +1,8 @@
 <?php
 // src/middleware/AuthMiddleware.php
-// 在需要登录的页面顶部（config.php之后）调用：
-//   AuthMiddleware::requireLogin();          // patient/admin都可以
-//   AuthMiddleware::requireRole('admin');    // 只允许admin
+// Call this at the top of pages that require authentication, after config.php:
+//   AuthMiddleware::requireLogin();          // patients and admins are allowed
+//   AuthMiddleware::requireRole('admin');    // admins only
 
 class AuthMiddleware
 {
@@ -15,7 +15,7 @@ class AuthMiddleware
     }
 
     /**
-     * @param string|string[] $roles 单个角色字符串，或允许的角色数组，例如 ['admin','doctor']
+    * @param string|string[] $roles A single role string or an array of allowed roles, e.g. ['admin','doctor']
      */
     public static function requireRole(string|array $roles): void
     {
@@ -32,8 +32,9 @@ class AuthMiddleware
     {
         if (isset($_SESSION['user_id'])) {
             $targetMap = [
-                'admin'   => 'profile.php', // TODO: admin/dashboard.php 做好后改这里
-                'doctor'  => 'profile.php', // TODO: doctor/dashboard.php 做好后改这里
+                'admin'   => 'admin/dashboard.php',
+                'assist'  => 'admin/manage-schedules.php',
+                'doctor'  => 'profile.php',
                 'patient' => 'profile.php',
             ];
             $target = $targetMap[$_SESSION['role'] ?? ''] ?? 'profile.php';

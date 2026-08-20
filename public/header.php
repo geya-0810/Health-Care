@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
+     <base href="<?= APP_URL; ?>/">
      <title>Health - Medical Website Template</title>
 <!--
 
@@ -89,14 +89,15 @@ http://www.tooplate.com/view/2098-health
                          <?php else: ?>
                               <?php
                                    $role = $_SESSION['role'] ?? 'patient';
-                                   // TODO: doctor/admin dashboard做好后把下面两个换成各自的路径
                                    $accountLink  = match ($role) {
-                                        'admin'  => 'profile.php',
+                                        'admin'  => 'admin/dashboard.php',
+                                        'assist' => 'admin/manage-schedules.php',
                                         'doctor' => 'profile.php',
                                         default  => 'profile.php',
                                    };
                                    $accountLabel = match ($role) {
                                         'admin'  => 'Admin Dashboard',
+                                        'assist' => 'Staff Portal',
                                         'doctor' => 'My Schedule',
                                         default  => 'My Profile',
                                    };

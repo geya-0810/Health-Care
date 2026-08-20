@@ -1,8 +1,8 @@
 <?php
 // src/storage/S3Storage.php
-// 迁移云端后用：composer require aws/aws-sdk-php
-// .env 需要设置：STORAGE_DRIVER=s3, AWS_REGION, AWS_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
-// (更推荐给VM挂IAM Role，不把AWS key写进.env —— 见下方说明)
+// Use after migrating to the cloud: composer require aws/aws-sdk-php
+// Set these in .env: STORAGE_DRIVER=s3, AWS_REGION, AWS_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+// (Attaching an IAM Role to the VM is preferred over storing AWS keys in .env; see below.)
 
 use Aws\S3\S3Client;
 use Aws\Exception\AwsException;
@@ -21,8 +21,8 @@ class S3Storage implements StorageInterface
             'region'  => $_ENV['AWS_REGION'] ?? 'ap-southeast-1',
         ];
 
-        // 本地测试用access key；部署到EC2后建议改用IAM Role，
-        // 这样SDK会自动从instance metadata拿临时凭证，.env里就不用放AWS key了
+        // Use an access key for local testing; use an IAM Role after deploying to EC2.
+        // The SDK then gets temporary credentials from instance metadata, so .env needs no AWS key.
         if (!empty($_ENV['AWS_ACCESS_KEY_ID'] ?? '')) {
             $config['credentials'] = [
                 'key'    => $_ENV['AWS_ACCESS_KEY_ID'],
@@ -40,7 +40,7 @@ class S3Storage implements StorageInterface
                 'Bucket'     => $this->bucket,
                 'Key'        => ltrim($destinationKey, '/'),
                 'SourceFile' => $tmpFilePath,
-                'ACL'        => 'public-read', // 医生头像等公开图片；病历附件建议改 private + presigned URL
+                'ACL'        => 'public-read', // Public images such as doctor avatars; medical attachments should use private + presigned URLs.
             ]);
             return (string) $result['ObjectURL'];
         } catch (AwsException $e) {

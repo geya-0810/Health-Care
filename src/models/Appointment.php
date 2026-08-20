@@ -3,11 +3,11 @@
 
 class Appointment
 {
-    public static function create(PDO $db, int $patientId, int $doctorId, int $scheduleId, string $reason = '', string $visitType = 'new_case'): int
+    public static function create(PDO $db, int $patientId, int $doctorId, int $scheduleId, string $reason = '', string $visitType = 'new_case', string $status = 'pending'): int
     {
         $stmt = $db->prepare(
             'INSERT INTO appointments (patient_id, doctor_id, schedule_id, reason, visit_type, status)
-             VALUES (:patient_id, :doctor_id, :schedule_id, :reason, :visit_type, "confirmed")'
+             VALUES (:patient_id, :doctor_id, :schedule_id, :reason, :visit_type, :status)'
         );
         $stmt->execute([
             'patient_id'  => $patientId,
@@ -15,6 +15,7 @@ class Appointment
             'schedule_id' => $scheduleId,
             'reason'      => $reason,
             'visit_type'  => $visitType,
+            'status'      => $status,
         ]);
         return (int) $db->lastInsertId();
     }
@@ -27,7 +28,7 @@ class Appointment
         return $row ?: null;
     }
 
-    // Patient的完整预约记录，带上医生名字和时段信息（给 profile.php 用）
+    // Complete patient appointment history, including doctor and slot details for profile.php.
     public static function byPatient(PDO $db, int $patientId): array
     {
         $stmt = $db->prepare(
@@ -44,7 +45,24 @@ class Appointment
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Admin用：全部预约，可按状态筛选
+    // The doctor's own appointments for viewing and confirmation in profile.php.
+    public static function byDoctor(PDO $db, int $doctorId): array
+    {
+        $stmt = $db->prepare(
+            'SELECT a.appointment_id, a.status, a.reason, a.visit_type, a.booked_at,
+                    u.user_id AS patient_id, u.full_name AS patient_name, u.email AS patient_email, u.phone AS patient_phone,
+                    s.slot_date, s.start_time
+             FROM appointments a
+             JOIN users u      ON u.user_id = a.patient_id
+             JOIN schedules s  ON s.schedule_id = a.schedule_id
+             WHERE a.doctor_id = :doctor_id
+             ORDER BY s.slot_date ASC, s.start_time ASC'
+        );
+        $stmt->execute(['doctor_id' => $doctorId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Admin view: all appointments, optionally filtered by status.
     public static function all(PDO $db, ?string $status = null): array
     {
         $sql = 'SELECT a.appointment_id, a.status, a.booked_at,

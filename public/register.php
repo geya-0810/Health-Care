@@ -1,6 +1,6 @@
 <?php
 // public/register.php
-// 只用于 patient 自助注册。doctor / admin 账号由 master admin 在后台创建（role写死不给前端选）
+// Patient self-registration only. Master admins create doctor/admin accounts in the backend.
 require_once __DIR__ . '/../src/config/config.php';
 
 AuthMiddleware::redirectIfLoggedIn();
@@ -32,14 +32,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $auth = new AuthService(Database::getConnection());
             $auth->register($old['full_name'], $old['email'], $old['phone'], $password);
-            // role固定是'patient'（写死在AuthService::register里），前端没有role选项，
-            // 这样doctor/admin就不可能通过这个表单产生
+            // The role is fixed to 'patient' in AuthService::register; the form has no role option,
+            // so doctor/admin accounts cannot be created through this form.
 
             header('Location: login.php?registered=1');
             exit;
 
         } catch (RuntimeException $e) {
-            // email已存在等业务错误
+            // Business errors such as an already-registered email.
             $errors[] = $e->getMessage();
         } catch (Throwable $e) {
             error_log('Registration failed: ' . $e->getMessage());

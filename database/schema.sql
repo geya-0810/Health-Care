@@ -10,8 +10,8 @@ CREATE TABLE users (
     email           VARCHAR(150)        NOT NULL UNIQUE,
     password_hash   VARCHAR(255)        NOT NULL,  
     phone           VARCHAR(20),
-    role            ENUM('patient', 'doctor', 'admin') NOT NULL DEFAULT 'patient',
-    created_at      TIMESTAMP           DEFAULT CURRENT_TIMESTAMP,
+    role            ENUM('patient', 'doctor', 'assist', 'admin') NOT NULL DEFAULT 'patient',
+    is_active       BOOLEAN             DEFAULT TRUE,    created_at      TIMESTAMP           DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP           DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 

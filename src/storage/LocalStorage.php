@@ -1,6 +1,6 @@
 <?php
 // src/storage/LocalStorage.php
-// XAMPP本地开发用：文件存到 storage/uploads/，通过一个小的下载脚本或直接文件路径访问
+// For local XAMPP development: store files in storage/uploads/ and access them through a download script or direct path.
 
 class LocalStorage implements StorageInterface
 {
@@ -10,7 +10,7 @@ class LocalStorage implements StorageInterface
     public function __construct()
     {
         $this->basePath = __DIR__ . '/../../storage/uploads';
-        $this->baseUrl  = APP_URL . '/uploads'; // 建议public/下放一个转发脚本，见下方说明
+        $this->baseUrl  = APP_URL . '/uploads'; // A forwarding script in public/ is recommended; see the note below.
         if (!is_dir($this->basePath)) {
             mkdir($this->basePath, 0755, true);
         }
@@ -25,7 +25,7 @@ class LocalStorage implements StorageInterface
         }
 
         if (!move_uploaded_file($tmpFilePath, $target)) {
-            // 非HTTP上传（例如测试脚本）时用 copy() 兜底
+            // Use copy() as a fallback for non-HTTP uploads such as test scripts.
             if (!copy($tmpFilePath, $target)) {
                 throw new RuntimeException("Failed to store file at $destinationKey");
             }

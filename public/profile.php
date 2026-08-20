@@ -4,26 +4,46 @@ require_once __DIR__ . '/../src/config/config.php';
 
 AuthMiddleware::requireLogin();
 
-$db        = Database::getConnection();
-$userId    = $_SESSION['user_id'];
-$booking   = new BookingService($db);
+$db      = Database::getConnection();
+$userId  = $_SESSION['user_id'];
+$role    = $_SESSION['role'] ?? 'patient';
+$booking = new BookingService($db);
+
+// Doctor accounts must first resolve their doctor_id through doctors.user_id.
+$myDoctor   = $role === 'doctor' ? Doctor::findByUserId($db, $userId) : null;
+$myDoctorId = $myDoctor['doctor_id'] ?? null;
 
 $errors  = [];
 $notices = [];
 
 if (isset($_GET['booked'])) {
-    $notices[] = 'Your appointment has been confirmed.';
+    $notices[] = 'Your appointment request has been sent. The doctor will confirm it shortly.';
 }
 
-// ---------- 处理表单动作 ----------
+// ---------- Handle form actions ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
-    // 取消预约
+    // Doctor confirms an appointment; only the doctor role can confirm their own appointments.
+    if ($action === 'confirm_appointment' && $role === 'doctor' && $myDoctorId) {
+        $appointmentId = (int) ($_POST['appointment_id'] ?? 0);
+        try {
+            $booking->confirmAppointment($appointmentId, $myDoctorId);
+            $notices[] = 'Appointment confirmed. The patient has been notified.';
+        } catch (RuntimeException $e) {
+            $errors[] = $e->getMessage();
+        } catch (Throwable $e) {
+            error_log('Confirm appointment failed: ' . $e->getMessage());
+            $errors[] = 'Something went wrong. Please try again.';
+        }
+    }
+
+    // Cancel appointment; patients cancel their own, while doctors cancel appointments assigned to them.
     if ($action === 'cancel_appointment') {
         $appointmentId = (int) ($_POST['appointment_id'] ?? 0);
         try {
-            $booking->cancelAppointment($appointmentId, $userId);
+            $ownerPatientId = $role === 'patient' ? $userId : null; // Doctors do not need a patient ownership check.
+            $booking->cancelAppointment($appointmentId, $ownerPatientId);
             $notices[] = 'Appointment cancelled.';
         } catch (RuntimeException $e) {
             $errors[] = $e->getMessage();
@@ -33,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // 更新个人资料
+    // Update profile.
     if ($action === 'update_profile') {
         $fullName = trim($_POST['full_name'] ?? '');
         $email    = trim($_POST['email'] ?? '');
@@ -53,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // 修改密码
+    // Change password.
     if ($action === 'change_password') {
         $current = $_POST['current_password'] ?? '';
         $new     = $_POST['new_password'] ?? '';
@@ -74,11 +94,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// ---------- 拉取最新数据 ----------
-$user         = User::findById($db, $userId);
-$appointments = $booking->getAppointmentsByPatient($userId);
-$upcoming     = $appointments['upcoming'];
-$past         = $appointments['past'];
+// ---------- Load the latest data ----------
+$user = User::findById($db, $userId);
+
+if ($role === 'doctor' && $myDoctorId) {
+    $appointments = $booking->getAppointmentsByDoctor($myDoctorId);
+    $pending      = $appointments['pending'];
+    $upcoming     = $appointments['upcoming'];
+    $past         = $appointments['past'];
+} else {
+    $appointments = $booking->getAppointmentsByPatient($userId);
+    $pending      = [];
+    $upcoming     = $appointments['upcoming'];
+    $past         = $appointments['past'];
+}
 
 function initials(string $name): string {
     $parts = preg_split('/\s+/', trim($name));
@@ -88,6 +117,7 @@ function initials(string $name): string {
 
 function statusLabel(string $status): string {
     $map = [
+        'pending'   => 'label-warning',
         'confirmed' => 'label-success',
         'cancelled' => 'label-danger',
         'completed' => 'label-default',
@@ -97,7 +127,12 @@ function statusLabel(string $status): string {
     return '<span class="label ' . $class . '">' . ucfirst(str_replace('_', ' ', $status)) . '</span>';
 }
 
-require_once __DIR__ . '/header.php';
+$pageTitle = 'My Profile';
+if ($role === 'doctor') {
+    require_once __DIR__ . '/admin/staff-header.php';
+} else {
+    require_once __DIR__ . '/header.php';
+}
 ?>
 
 <section id="profile-page" style="padding:60px 0; min-height:60vh;">
@@ -136,15 +171,54 @@ require_once __DIR__ . '/header.php';
             <!-- ===== My Appointments ===== -->
             <div role="tabpanel" class="tab-pane active" id="tab-appointments">
 
+                <?php if ($role === 'doctor'): ?>
+                    <h4>Pending Requests (<?= count($pending) ?>)</h4>
+                    <?php if (empty($pending)): ?>
+                        <p class="text-muted">No pending requests.</p>
+                    <?php else: ?>
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr><th>Patient</th><th>Date</th><th>Time</th><th>Visit Type</th><th>Reason</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                            <?php foreach ($pending as $a): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($a['patient_name']) ?></td>
+                                    <td><?= htmlspecialchars($a['slot_date']) ?></td>
+                                    <td><?= substr($a['start_time'], 0, 5) ?></td>
+                                    <td><?= ucfirst(str_replace('_', ' ', $a['visit_type'])) ?></td>
+                                    <td><?= htmlspecialchars($a['reason'] ?: '—') ?></td>
+                                    <td style="white-space:nowrap;">
+                                        <form method="post" action="profile.php" style="display:inline-block;margin:0;">
+                                            <input type="hidden" name="action" value="confirm_appointment">
+                                            <input type="hidden" name="appointment_id" value="<?= (int) $a['appointment_id'] ?>">
+                                            <button type="submit" class="btn btn-xs btn-success">Confirm</button>
+                                        </form>
+                                        <form method="post" action="profile.php" style="display:inline-block;margin:0;"
+                                              onsubmit="return confirm('Decline this request?');">
+                                            <input type="hidden" name="action" value="cancel_appointment">
+                                            <input type="hidden" name="appointment_id" value="<?= (int) $a['appointment_id'] ?>">
+                                            <button type="submit" class="btn btn-xs btn-danger">Decline</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    <?php endif; ?>
+                <?php endif; ?>
+
                 <h4>Upcoming (<?= count($upcoming) ?>)</h4>
                 <?php if (empty($upcoming)): ?>
-                    <p class="text-muted">No upcoming appointments. <a href="appointment.php">Book one now</a>.</p>
+                    <p class="text-muted">
+                        <?= $role === 'doctor' ? 'No confirmed upcoming appointments.' : 'No upcoming appointments. <a href="appointment.php">Book one now</a>.' ?>
+                    </p>
                 <?php else: ?>
                     <table class="table table-bordered">
                         <thead>
                             <tr>
-                                <th>Doctor</th>
-                                <th>Specialty</th>
+                                <th><?= $role === 'doctor' ? 'Patient' : 'Doctor' ?></th>
+                                <th><?= $role === 'doctor' ? 'Contact' : 'Specialty' ?></th>
                                 <th>Date</th>
                                 <th>Time</th>
                                 <th>Visit Type</th>
@@ -155,8 +229,13 @@ require_once __DIR__ . '/header.php';
                         <tbody>
                         <?php foreach ($upcoming as $a): ?>
                             <tr>
-                                <td><?= htmlspecialchars($a['doctor_name']) ?></td>
-                                <td><?= htmlspecialchars($a['specialty']) ?></td>
+                                <?php if ($role === 'doctor'): ?>
+                                    <td><?= htmlspecialchars($a['patient_name']) ?></td>
+                                    <td><?= htmlspecialchars($a['patient_email']) ?></td>
+                                <?php else: ?>
+                                    <td><?= htmlspecialchars($a['doctor_name']) ?></td>
+                                    <td><?= htmlspecialchars($a['specialty']) ?></td>
+                                <?php endif; ?>
                                 <td><?= htmlspecialchars($a['slot_date']) ?></td>
                                 <td><?= substr($a['start_time'], 0, 5) ?></td>
                                 <td><?= ucfirst(str_replace('_', ' ', $a['visit_type'])) ?></td>
@@ -184,8 +263,8 @@ require_once __DIR__ . '/header.php';
                     <table class="table table-bordered">
                         <thead>
                             <tr>
-                                <th>Doctor</th>
-                                <th>Specialty</th>
+                                <th><?= $role === 'doctor' ? 'Patient' : 'Doctor' ?></th>
+                                <th><?= $role === 'doctor' ? 'Contact' : 'Specialty' ?></th>
                                 <th>Date</th>
                                 <th>Time</th>
                                 <th>Visit Type</th>
@@ -195,8 +274,13 @@ require_once __DIR__ . '/header.php';
                         <tbody>
                         <?php foreach ($past as $a): ?>
                             <tr>
-                                <td><?= htmlspecialchars($a['doctor_name']) ?></td>
-                                <td><?= htmlspecialchars($a['specialty']) ?></td>
+                                <?php if ($role === 'doctor'): ?>
+                                    <td><?= htmlspecialchars($a['patient_name']) ?></td>
+                                    <td><?= htmlspecialchars($a['patient_email']) ?></td>
+                                <?php else: ?>
+                                    <td><?= htmlspecialchars($a['doctor_name']) ?></td>
+                                    <td><?= htmlspecialchars($a['specialty']) ?></td>
+                                <?php endif; ?>
                                 <td><?= htmlspecialchars($a['slot_date']) ?></td>
                                 <td><?= substr($a['start_time'], 0, 5) ?></td>
                                 <td><?= ucfirst(str_replace('_', ' ', $a['visit_type'])) ?></td>
@@ -231,7 +315,7 @@ require_once __DIR__ . '/header.php';
 
             <!-- ===== Security ===== -->
             <div role="tabpanel" class="tab-pane" id="tab-security">
-                <form method="post" action="profile.php" class="form-horizontal" style="max-width:500px;">
+                <form method="post" action="<?= ($role === 'doctor' ? '../' : '');?>profile.php" class="form-horizontal" style="max-width:500px;">
                     <input type="hidden" name="action" value="change_password">
 
                     <div class="form-group">
@@ -254,4 +338,4 @@ require_once __DIR__ . '/header.php';
     </div>
 </section>
 
-<?php require_once __DIR__ . '/footer.php'; ?>
+<?php require_once __DIR__ . '/' . ($role === 'doctor' ? 'admin/staff-footer.php' : 'footer.php'); ?>
