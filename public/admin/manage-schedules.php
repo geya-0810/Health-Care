@@ -1,21 +1,45 @@
 <?php
 // public/admin/manage-schedules.php
-require_once __DIR__ . '/../../src/config/config.php';
+//    用法： $embedded = true; require __DIR__ . '/admin/manage-schedules.php';
 
-AuthMiddleware::requireRole(['admin', 'assist']);
+$embedded = $embedded ?? false;
+
+// require_once __DIR__ . '/../../src/config/config.php';
+
+$role = $_SESSION['role'] ?? '';
+
+if (!$embedded) {
+    require_once __DIR__ . '/../../src/config/config.php';
+    // 独立访问时才做权限检查——嵌入模式下profile.php已经AuthMiddleware::requireLogin()过了
+    AuthMiddleware::requireRole(['admin', 'assist']);
+}
 
 $db      = Database::getConnection();
-$errors  = [];
-$notices = [];
+$errors  = $errors ?? [];
+$notices = $notices ?? [];
 
-$doctors = Doctor::all($db);
+// 嵌入模式 + doctor角色 = 只能管自己的排班，不能选别的医生
+$isDoctorEmbedded = $embedded && $role === 'doctor';
 
-$selectedDoctorId = isset($_GET['doctor_id']) ? (int) $_GET['doctor_id'] : ($doctors[0]['doctor_id'] ?? 0);
-$selectedDate     = $_GET['date'] ?? date('Y-m-d');
+if ($isDoctorEmbedded) {
+    $myDoctor =  $myDoctor ?? Doctor::findByUserId($db, $_SESSION['user_id']);
+    $lockedDoctorId = $myDoctor['doctor_id'] ?? 0;
+    $doctors = []; // 不需要下拉选择器
+} else {
+    $lockedDoctorId = null;
+    $doctors = Doctor::all($db);
+}
 
-// ---------- Add slot ----------
+$selectedDoctorId = $isDoctorEmbedded
+    ? $lockedDoctorId
+    : (isset($_GET['doctor_id']) ? (int) $_GET['doctor_id'] : ($doctors[0]['doctor_id'] ?? 0));
+
+$selectedDate = $_GET['schedule_date'] ?? $_GET['date'] ?? date('Y-m-d');
+
+// ---------- 新增slot ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_slot') {
-    $doctorId  = (int) $_POST['doctor_id'];
+    // doctor嵌入模式下，doctor_id永远用锁定的自己的id，不信任POST传来的值
+    $doctorId  = $isDoctorEmbedded ? $lockedDoctorId : (int) $_POST['doctor_id'];
     $date      = $_POST['slot_date'];
     $startTime = $_POST['start_time'];
     $endTime   = $_POST['end_time'];
@@ -27,42 +51,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_s
             Schedule::create($db, $doctorId, $date, $startTime, $endTime);
             $notices[] = 'Time slot added.';
         } catch (PDOException $e) {
-            // The UNIQUE constraint was hit: this doctor already has a slot at this date and time.
-            $errors[] = 'This exact time slot already exists for this doctor on this date.';
+            // UNIQUE约束撞上了：同一医生同一天同一时间已经开过slot
+            $errors[] = 'This exact time slot already exists on this date.';
         }
     }
     $selectedDoctorId = $doctorId;
     $selectedDate     = $date;
 }
 
-// ---------- Delete slot (only slots without bookings can be deleted) ----------
+// ---------- 删除slot（只能删还没被约的） ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_slot') {
     $scheduleId = (int) $_POST['schedule_id'];
-    if (Schedule::delete($db, $scheduleId)) {
+    $slot = Schedule::findById($db, $scheduleId);
+
+    // doctor嵌入模式下多一层检查：这个slot必须是自己的，不能删别的医生的
+    $ownsThisSlot = !$isDoctorEmbedded || ($slot && (int) $slot['doctor_id'] === $lockedDoctorId);
+
+    if ($slot && $ownsThisSlot && Schedule::delete($db, $scheduleId)) {
         $notices[] = 'Time slot removed.';
     } else {
-        $errors[] = 'Cannot remove a slot that has already been booked. Cancel the appointment first.';
+        $errors[] = 'Cannot remove this slot — it may already be booked, or does not belong to you.';
     }
-    $selectedDoctorId = (int) $_POST['doctor_id'];
+    $selectedDoctorId = $isDoctorEmbedded ? $lockedDoctorId : (int) $_POST['doctor_id'];
     $selectedDate     = $_POST['slot_date'];
 }
 
 $slots = $selectedDoctorId ? Schedule::forDoctorOnDate($db, $selectedDoctorId, $selectedDate) : [];
 
-$pageTitle = 'Manage Schedules';
-require_once __DIR__ . '/staff-header.php';
+$formAction = $embedded ? '../profile.php' : 'manage-schedules.php';
+
+if (!$embedded) {
+    $pageTitle = 'Manage Schedules';
+    require_once __DIR__ . '/staff-header.php';
+}
 ?>
 
+<?php if (!$embedded): ?>
 <section style="padding:60px 0; min-height:70vh;">
     <div class="container">
         <h2 style="margin-bottom:30px;">Manage Schedules</h2>
-        <p class="text-muted">As admin, you can view and manage every doctor's schedule.</p>
+        <p class="text-muted">As <?= htmlspecialchars($role) ?>, you can view and manage every doctor's schedule.</p>
+<?php endif; ?>
 
+        <?php if (!$embedded): ?>
         <?php foreach ($notices as $n): ?><div class="alert alert-success"><?= htmlspecialchars($n) ?></div><?php endforeach; ?>
         <?php foreach ($errors as $e): ?><div class="alert alert-danger"><?= htmlspecialchars($e) ?></div><?php endforeach; ?>
+        <?php endif; ?>
 
-        <!-- Doctor + date filter -->
-        <form method="get" action="manage-schedules.php" class="form-inline" style="margin-bottom:24px;">
+        <!-- Doctor + date filter：doctor嵌入模式不需要选医生，直接跳过这块 -->
+        <?php if (!$isDoctorEmbedded): ?>
+        <form method="get" action="<?= $formAction ?>" class="form-inline" style="margin-bottom:24px;">
             <div class="form-group" style="margin-right:10px;">
                 <label style="margin-right:6px;">Doctor</label>
                 <select name="doctor_id" class="form-control" onchange="this.form.submit()">
@@ -78,14 +116,23 @@ require_once __DIR__ . '/staff-header.php';
                 <input type="date" name="date" class="form-control" value="<?= htmlspecialchars($selectedDate) ?>" onchange="this.form.submit()">
             </div>
         </form>
+        <?php else: ?>
+        <form method="get" action="<?= $formAction ?>" class="form-inline" style="margin-bottom:20px;">
+            <label style="margin-right:8px;">Date</label>
+            <input type="date" name="schedule_date" class="form-control" value="<?= htmlspecialchars($selectedDate) ?>" onchange="this.form.submit()">
+            <?php if ($embedded): ?><input type="hidden" name="tab" value="schedule"><?php endif; ?>
+        </form>
+        <?php endif; ?>
 
         <div class="row">
             <!-- Add slot -->
             <div class="col-md-4">
                 <h4>Add Time Slot</h4>
-                <form method="post" action="manage-schedules.php">
+                <form method="post" action="<?= $formAction ?>">
                     <input type="hidden" name="action" value="add_slot">
-                    <input type="hidden" name="doctor_id" value="<?= $selectedDoctorId ?>">
+                    <?php if (!$isDoctorEmbedded): ?>
+                        <input type="hidden" name="doctor_id" value="<?= $selectedDoctorId ?>">
+                    <?php endif; ?>
 
                     <div class="form-group">
                         <label>Date</label>
@@ -123,11 +170,13 @@ require_once __DIR__ . '/staff-header.php';
                             </td>
                             <td>
                                 <?php if ($s['status'] === 'available'): ?>
-                                    <form method="post" action="manage-schedules.php" style="margin:0;"
+                                    <form method="post" action="<?= $formAction ?>" style="margin:0;"
                                           onsubmit="return confirm('Remove this slot?');">
                                         <input type="hidden" name="action" value="delete_slot">
                                         <input type="hidden" name="schedule_id" value="<?= (int) $s['schedule_id'] ?>">
-                                        <input type="hidden" name="doctor_id" value="<?= $selectedDoctorId ?>">
+                                        <?php if (!$isDoctorEmbedded): ?>
+                                            <input type="hidden" name="doctor_id" value="<?= $selectedDoctorId ?>">
+                                        <?php endif; ?>
                                         <input type="hidden" name="slot_date" value="<?= htmlspecialchars($selectedDate) ?>">
                                         <button type="submit" class="btn btn-xs btn-danger">Remove</button>
                                     </form>
@@ -144,7 +193,10 @@ require_once __DIR__ . '/staff-header.php';
                 </table>
             </div>
         </div>
+
+<?php if (!$embedded): ?>
     </div>
 </section>
 
 <?php require_once __DIR__ . '/staff-footer.php'; ?>
+<?php endif; ?>

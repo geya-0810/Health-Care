@@ -33,10 +33,11 @@ class Appointment
     {
         $stmt = $db->prepare(
             'SELECT a.appointment_id, a.status, a.reason, a.visit_type, a.booked_at,
-                    d.doctor_id, d.full_name AS doctor_name, d.specialty,
+                          d.doctor_id, du.full_name AS doctor_name, d.specialty,
                     s.slot_date, s.start_time
              FROM appointments a
              JOIN doctors d   ON d.doctor_id = a.doctor_id
+                      LEFT JOIN users du ON du.user_id = d.user_id
              JOIN schedules s ON s.schedule_id = a.schedule_id
              WHERE a.patient_id = :patient_id
              ORDER BY s.slot_date DESC, s.start_time DESC'
@@ -67,11 +68,12 @@ class Appointment
     {
         $sql = 'SELECT a.appointment_id, a.status, a.booked_at,
                        u.full_name AS patient_name, u.email AS patient_email,
-                       d.full_name AS doctor_name,
+                      du.full_name AS doctor_name,
                        s.slot_date, s.start_time
                 FROM appointments a
                 JOIN users u     ON u.user_id = a.patient_id
                 JOIN doctors d   ON d.doctor_id = a.doctor_id
+                  LEFT JOIN users du ON du.user_id = d.user_id
                 JOIN schedules s ON s.schedule_id = a.schedule_id';
         if ($status) {
             $sql .= ' WHERE a.status = :status';

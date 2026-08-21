@@ -54,12 +54,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
         $db->beginTransaction();
         try {
             Doctor::update($db, $doctorId, [
-                'full_name' => $fullName, 'specialty' => $specialty, 'email' => $email,
-                'phone' => $phone, 'bio' => $bio, 'consultation_fee' => $fee, 'is_active' => $isActive,
+                'specialty' => $specialty, 'bio' => $bio, 'consultation_fee' => $fee, 'is_active' => $isActive,
             ]);
             if ($userId) {
                 User::adminUpdate($db, $userId, [
-                    'full_name' => $fullName, 'email' => $email, 'phone' => $phone, 'is_active' => $isActive,
+                    'full_name' => $fullName,
+                    'email' => $email,
+                    'phone' => $phone,
+                    'is_active' => $isActive,
                 ]);
             }
             $db->commit();
@@ -110,10 +112,10 @@ if ($isAdmin) {
     $staff = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $stmt = $db->prepare(
-        "SELECT d.*, u.is_active AS account_active FROM doctors d
+        "SELECT d.*, u.full_name, u.email, u.phone, u.is_active AS account_active FROM doctors d
          LEFT JOIN users u ON u.user_id = d.user_id
-         WHERE d.full_name LIKE :q OR d.specialty LIKE :q OR d.email LIKE :q
-         ORDER BY d.full_name"
+         WHERE u.full_name LIKE :q OR d.specialty LIKE :q OR u.email LIKE :q
+         ORDER BY u.full_name"
     );
     $stmt->execute(['q' => "%$doctorQ%"]);
     $doctors = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -133,7 +135,11 @@ $editId   = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $editingStaff = ($editType === 'staff' && $isAdmin) ? User::findById($db, $editId) : null;
 $editingDoctor = null;
 if ($editType === 'doctor' && $isAdmin) {
-    $stmt = $db->prepare('SELECT * FROM doctors WHERE doctor_id = :id');
+    $stmt = $db->prepare(
+        'SELECT d.*, u.full_name, u.email, u.phone
+         FROM doctors d LEFT JOIN users u ON u.user_id = d.user_id
+         WHERE d.doctor_id = :id'
+    );
     $stmt->execute(['id' => $editId]);
     $editingDoctor = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 }

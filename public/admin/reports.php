@@ -32,8 +32,10 @@ $byVisitType = $db->query(
 )->fetchAll(PDO::FETCH_KEY_PAIR);
 
 $byDoctor = $db->query(
-    "SELECT d.full_name, COUNT(*) AS total
-     FROM appointments a JOIN doctors d ON d.doctor_id = a.doctor_id
+    "SELECT u.full_name, COUNT(*) AS total
+     FROM appointments a
+     JOIN doctors d ON d.doctor_id = a.doctor_id
+     JOIN users u ON u.user_id = d.user_id
      GROUP BY d.doctor_id ORDER BY total DESC LIMIT 10"
 )->fetchAll(PDO::FETCH_KEY_PAIR);
 

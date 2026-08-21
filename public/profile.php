@@ -1,5 +1,6 @@
 <?php
 // public/profile.php
+
 require_once __DIR__ . '/../src/config/config.php';
 
 AuthMiddleware::requireLogin();
@@ -9,7 +10,6 @@ $userId  = $_SESSION['user_id'];
 $role    = $_SESSION['role'] ?? 'patient';
 $booking = new BookingService($db);
 
-// Doctor accounts must first resolve their doctor_id through doctors.user_id.
 $myDoctor   = $role === 'doctor' ? Doctor::findByUserId($db, $userId) : null;
 $myDoctorId = $myDoctor['doctor_id'] ?? null;
 
@@ -20,11 +20,10 @@ if (isset($_GET['booked'])) {
     $notices[] = 'Your appointment request has been sent. The doctor will confirm it shortly.';
 }
 
-// ---------- Handle form actions ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
-    // Doctor confirms an appointment; only the doctor role can confirm their own appointments.
+    // 医生确认预约（只有doctor角色能触发，且只能确认自己的预约）
     if ($action === 'confirm_appointment' && $role === 'doctor' && $myDoctorId) {
         $appointmentId = (int) ($_POST['appointment_id'] ?? 0);
         try {
@@ -38,11 +37,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Cancel appointment; patients cancel their own, while doctors cancel appointments assigned to them.
+    // 取消预约（patient取消自己的；doctor取消自己名下的）
     if ($action === 'cancel_appointment') {
         $appointmentId = (int) ($_POST['appointment_id'] ?? 0);
         try {
-            $ownerPatientId = $role === 'patient' ? $userId : null; // Doctors do not need a patient ownership check.
+            $ownerPatientId = $role === 'patient' ? $userId : null; // doctor取消时不做patient归属检查
             $booking->cancelAppointment($appointmentId, $ownerPatientId);
             $notices[] = 'Appointment cancelled.';
         } catch (RuntimeException $e) {
@@ -53,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Update profile.
+    // 更新个人资料（含头像上传）
     if ($action === 'update_profile') {
         $fullName = trim($_POST['full_name'] ?? '');
         $email    = trim($_POST['email'] ?? '');
@@ -65,7 +64,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 User::update($db, $userId, ['full_name' => $fullName, 'email' => $email, 'phone' => $phone]);
                 $_SESSION['full_name'] = $fullName;
-                $notices[] = 'Profile updated.';
+
+                // 头像是可选的，没选文件就跳过，不报错
+                if (!empty($_FILES['avatar']['name']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+                    try {
+                        // doctor/admin/assist 存 avatar/staff/，patient 存 avatar/user/
+                        // 对应 storage/avatar/staff 和 storage/avatar/user 这两个文件夹
+                        $avatarFolder = in_array($role, ['doctor', 'admin', 'assist'], true) ? 'avatar/staff' : 'avatar/user';
+
+                        $key = StorageFactory::generateKey($avatarFolder, $_FILES['avatar']['name']);
+                        $url = StorageFactory::make()->upload($_FILES['avatar']['tmp_name'], $key);
+                        User::updateAvatar($db, $userId, $url);
+                        $notices[] = 'Profile and avatar updated.';
+                    } catch (Throwable $e) {
+                        error_log('Avatar upload failed: ' . $e->getMessage());
+                        $errors[] = 'Profile saved, but the avatar upload failed: ' . $e->getMessage();
+                    }
+                } else {
+                    $notices[] = 'Profile updated.';
+                }
             } catch (Throwable $e) {
                 error_log('Profile update failed: ' . $e->getMessage());
                 $errors[] = 'Could not update profile. The email might already be in use.';
@@ -73,15 +90,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Change password.
+    // 修改密码
     if ($action === 'change_password') {
         $current = $_POST['current_password'] ?? '';
         $new     = $_POST['new_password'] ?? '';
         $confirm = $_POST['confirm_password'] ?? '';
 
-        $user = User::findById($db, $userId);
+        $currentUser = User::findById($db, $userId);
 
-        if (!password_verify($current, $user['password_hash'])) {
+        if (!password_verify($current, $currentUser['password_hash'])) {
             $errors[] = 'Current password is incorrect.';
         } elseif (strlen($new) < 8) {
             $errors[] = 'New password must be at least 8 characters.';
@@ -94,20 +111,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// ---------- Load the latest data ----------
 $user = User::findById($db, $userId);
+
+$showAppointmentsTab = in_array($role, ['patient', 'doctor'], true);
+$showScheduleTab     = $role === 'doctor';
+
+$scheduleTabHtml = '';
+if ($showScheduleTab) {
+    ob_start();
+    $embedded = true;
+    require __DIR__ . '/admin/manage-schedules.php';
+    $scheduleTabHtml = ob_get_clean();
+}
 
 if ($role === 'doctor' && $myDoctorId) {
     $appointments = $booking->getAppointmentsByDoctor($myDoctorId);
     $pending      = $appointments['pending'];
     $upcoming     = $appointments['upcoming'];
     $past         = $appointments['past'];
-} else {
+} elseif ($role === 'patient') {
     $appointments = $booking->getAppointmentsByPatient($userId);
     $pending      = [];
     $upcoming     = $appointments['upcoming'];
     $past         = $appointments['past'];
+} else {
+    $pending = $upcoming = $past = [];
 }
+
+$activeTab = $showAppointmentsTab ? 'tab-appointments' : 'tab-info';
+if (in_array($_POST['action'] ?? '', ['add_slot', 'delete_slot'], true)) {
+    $activeTab = 'tab-schedule';
+} elseif (($_POST['action'] ?? '') === 'update_profile') {
+    $activeTab = 'tab-info';
+} elseif (($_POST['action'] ?? '') === 'change_password') {
+    $activeTab = 'tab-security';
+} elseif (($_GET['tab'] ?? '') === 'schedule' && $showScheduleTab) {
+    $activeTab = 'tab-schedule';
+}
+
+$usesStaffHeader = in_array($role, ['doctor', 'admin', 'assist'], true);
+$formPrefix      = $usesStaffHeader ? '../' : '';
 
 function initials(string $name): string {
     $parts = preg_split('/\s+/', trim($name));
@@ -128,11 +171,7 @@ function statusLabel(string $status): string {
 }
 
 $pageTitle = 'My Profile';
-if ($role === 'doctor') {
-    require_once __DIR__ . '/admin/staff-header.php';
-} else {
-    require_once __DIR__ . '/header.php';
-}
+require_once __DIR__ . ($usesStaffHeader ? '/admin/staff-header.php' : '/header.php');
 ?>
 
 <section id="profile-page" style="padding:60px 0; min-height:60vh;">
@@ -141,10 +180,15 @@ if ($role === 'doctor') {
         <!-- Profile header -->
         <div class="row" style="margin-bottom:30px;">
             <div class="col-md-12" style="display:flex; align-items:center; gap:20px;">
-                <div style="width:70px;height:70px;border-radius:50%;background:#8BC63F;color:#fff;
-                            display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:600;">
-                    <?= htmlspecialchars(initials($user['full_name'])) ?>
-                </div>
+                <?php if (!empty($user['avatar_url'])): ?>
+                    <img src="<?= htmlspecialchars($user['avatar_url']) ?>" alt="Avatar"
+                         style="width:70px;height:70px;border-radius:50%;object-fit:cover;">
+                <?php else: ?>
+                    <div style="width:70px;height:70px;border-radius:50%;background:#8BC63F;color:#fff;
+                                display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:600;">
+                        <?= htmlspecialchars(initials($user['full_name'])) ?>
+                    </div>
+                <?php endif; ?>
                 <div>
                     <h3 style="margin:0;"><?= htmlspecialchars($user['full_name']) ?></h3>
                     <p style="margin:0;color:#999;"><?= htmlspecialchars($user['email']) ?></p>
@@ -161,181 +205,40 @@ if ($role === 'doctor') {
 
         <!-- Tabs -->
         <ul class="nav nav-tabs" role="tablist" style="margin-bottom:24px;">
-            <li role="presentation" class="active"><a href="#tab-appointments" aria-controls="tab-appointments" role="tab" data-toggle="tab">My Appointments</a></li>
-            <li role="presentation"><a href="#tab-info" aria-controls="tab-info" role="tab" data-toggle="tab">Profile Info</a></li>
-            <li role="presentation"><a href="#tab-security" aria-controls="tab-security" role="tab" data-toggle="tab">Security</a></li>
+            <?php if ($showAppointmentsTab): ?>
+                <li role="presentation" class="<?= $activeTab === 'tab-appointments' ? 'active' : '' ?>"><a href="#tab-appointments" aria-controls="tab-appointments" role="tab" data-toggle="tab">My Appointments</a></li>
+            <?php endif; ?>
+            <?php if ($showScheduleTab): ?>
+                <li role="presentation" class="<?= $activeTab === 'tab-schedule' ? 'active' : '' ?>"><a href="#tab-schedule" aria-controls="tab-schedule" role="tab" data-toggle="tab">My Schedule</a></li>
+            <?php endif; ?>
+            <li role="presentation" class="<?= $activeTab === 'tab-info' ? 'active' : '' ?>"><a href="#tab-info" aria-controls="tab-info" role="tab" data-toggle="tab">Profile Info</a></li>
+            <li role="presentation" class="<?= $activeTab === 'tab-security' ? 'active' : '' ?>"><a href="#tab-security" aria-controls="tab-security" role="tab" data-toggle="tab">Security</a></li>
         </ul>
 
         <div class="tab-content">
 
-            <!-- ===== My Appointments ===== -->
-            <div role="tabpanel" class="tab-pane active" id="tab-appointments">
+            <?php if ($showAppointmentsTab): ?>
+                <div role="tabpanel" class="tab-pane <?= $activeTab === 'tab-appointments' ? 'active' : '' ?>" id="tab-appointments">
+                    <?php require __DIR__ . '/profile-tabs/appointments.php'; ?>
+                </div>
+            <?php endif; ?>
 
-                <?php if ($role === 'doctor'): ?>
-                    <h4>Pending Requests (<?= count($pending) ?>)</h4>
-                    <?php if (empty($pending)): ?>
-                        <p class="text-muted">No pending requests.</p>
-                    <?php else: ?>
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr><th>Patient</th><th>Date</th><th>Time</th><th>Visit Type</th><th>Reason</th><th></th></tr>
-                            </thead>
-                            <tbody>
-                            <?php foreach ($pending as $a): ?>
-                                <tr>
-                                    <td><?= htmlspecialchars($a['patient_name']) ?></td>
-                                    <td><?= htmlspecialchars($a['slot_date']) ?></td>
-                                    <td><?= substr($a['start_time'], 0, 5) ?></td>
-                                    <td><?= ucfirst(str_replace('_', ' ', $a['visit_type'])) ?></td>
-                                    <td><?= htmlspecialchars($a['reason'] ?: '—') ?></td>
-                                    <td style="white-space:nowrap;">
-                                        <form method="post" action="profile.php" style="display:inline-block;margin:0;">
-                                            <input type="hidden" name="action" value="confirm_appointment">
-                                            <input type="hidden" name="appointment_id" value="<?= (int) $a['appointment_id'] ?>">
-                                            <button type="submit" class="btn btn-xs btn-success">Confirm</button>
-                                        </form>
-                                        <form method="post" action="profile.php" style="display:inline-block;margin:0;"
-                                              onsubmit="return confirm('Decline this request?');">
-                                            <input type="hidden" name="action" value="cancel_appointment">
-                                            <input type="hidden" name="appointment_id" value="<?= (int) $a['appointment_id'] ?>">
-                                            <button type="submit" class="btn btn-xs btn-danger">Decline</button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    <?php endif; ?>
-                <?php endif; ?>
+            <?php if ($showScheduleTab): ?>
+                <div role="tabpanel" class="tab-pane <?= $activeTab === 'tab-schedule' ? 'active' : '' ?>" id="tab-schedule">
+                    <?= $scheduleTabHtml ?>
+                </div>
+            <?php endif; ?>
 
-                <h4>Upcoming (<?= count($upcoming) ?>)</h4>
-                <?php if (empty($upcoming)): ?>
-                    <p class="text-muted">
-                        <?= $role === 'doctor' ? 'No confirmed upcoming appointments.' : 'No upcoming appointments. <a href="appointment.php">Book one now</a>.' ?>
-                    </p>
-                <?php else: ?>
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th><?= $role === 'doctor' ? 'Patient' : 'Doctor' ?></th>
-                                <th><?= $role === 'doctor' ? 'Contact' : 'Specialty' ?></th>
-                                <th>Date</th>
-                                <th>Time</th>
-                                <th>Visit Type</th>
-                                <th>Status</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($upcoming as $a): ?>
-                            <tr>
-                                <?php if ($role === 'doctor'): ?>
-                                    <td><?= htmlspecialchars($a['patient_name']) ?></td>
-                                    <td><?= htmlspecialchars($a['patient_email']) ?></td>
-                                <?php else: ?>
-                                    <td><?= htmlspecialchars($a['doctor_name']) ?></td>
-                                    <td><?= htmlspecialchars($a['specialty']) ?></td>
-                                <?php endif; ?>
-                                <td><?= htmlspecialchars($a['slot_date']) ?></td>
-                                <td><?= substr($a['start_time'], 0, 5) ?></td>
-                                <td><?= ucfirst(str_replace('_', ' ', $a['visit_type'])) ?></td>
-                                <td><?= statusLabel($a['status']) ?></td>
-                                <td>
-                                    <?php if ($a['status'] === 'confirmed'): ?>
-                                        <form method="post" action="profile.php" style="margin:0;"
-                                              onsubmit="return confirm('Cancel this appointment?');">
-                                            <input type="hidden" name="action" value="cancel_appointment">
-                                            <input type="hidden" name="appointment_id" value="<?= (int) $a['appointment_id'] ?>">
-                                            <button type="submit" class="btn btn-danger btn-xs">Cancel</button>
-                                        </form>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                <?php endif; ?>
-
-                <h4 style="margin-top:30px;">Past (<?= count($past) ?>)</h4>
-                <?php if (empty($past)): ?>
-                    <p class="text-muted">No past appointments yet.</p>
-                <?php else: ?>
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th><?= $role === 'doctor' ? 'Patient' : 'Doctor' ?></th>
-                                <th><?= $role === 'doctor' ? 'Contact' : 'Specialty' ?></th>
-                                <th>Date</th>
-                                <th>Time</th>
-                                <th>Visit Type</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($past as $a): ?>
-                            <tr>
-                                <?php if ($role === 'doctor'): ?>
-                                    <td><?= htmlspecialchars($a['patient_name']) ?></td>
-                                    <td><?= htmlspecialchars($a['patient_email']) ?></td>
-                                <?php else: ?>
-                                    <td><?= htmlspecialchars($a['doctor_name']) ?></td>
-                                    <td><?= htmlspecialchars($a['specialty']) ?></td>
-                                <?php endif; ?>
-                                <td><?= htmlspecialchars($a['slot_date']) ?></td>
-                                <td><?= substr($a['start_time'], 0, 5) ?></td>
-                                <td><?= ucfirst(str_replace('_', ' ', $a['visit_type'])) ?></td>
-                                <td><?= statusLabel($a['status']) ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                <?php endif; ?>
+            <div role="tabpanel" class="tab-pane <?= $activeTab === 'tab-info' ? 'active' : '' ?>" id="tab-info">
+                <?php require __DIR__ . '/profile-tabs/info.php'; ?>
             </div>
 
-            <!-- ===== Profile Info ===== -->
-            <div role="tabpanel" class="tab-pane" id="tab-info">
-                <form method="post" action="profile.php" class="form-horizontal" style="max-width:500px;">
-                    <input type="hidden" name="action" value="update_profile">
-
-                    <div class="form-group">
-                        <label>Full name</label>
-                        <input type="text" name="full_name" class="form-control" value="<?= htmlspecialchars($user['full_name']) ?>" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Email address</label>
-                        <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($user['email']) ?>" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Phone number</label>
-                        <input type="tel" name="phone" class="form-control" value="<?= htmlspecialchars($user['phone'] ?? '') ?>">
-                    </div>
-                    <button type="submit" class="btn btn-primary" style="background:#8BC63F;border-color:#8BC63F;">Save changes</button>
-                </form>
-            </div>
-
-            <!-- ===== Security ===== -->
-            <div role="tabpanel" class="tab-pane" id="tab-security">
-                <form method="post" action="<?= ($role === 'doctor' ? '../' : '');?>profile.php" class="form-horizontal" style="max-width:500px;">
-                    <input type="hidden" name="action" value="change_password">
-
-                    <div class="form-group">
-                        <label>Current password</label>
-                        <input type="password" name="current_password" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label>New password</label>
-                        <input type="password" name="new_password" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Confirm new password</label>
-                        <input type="password" name="confirm_password" class="form-control" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary" style="background:#8BC63F;border-color:#8BC63F;">Update password</button>
-                </form>
+            <div role="tabpanel" class="tab-pane <?= $activeTab === 'tab-security' ? 'active' : '' ?>" id="tab-security">
+                <?php require __DIR__ . '/profile-tabs/security.php'; ?>
             </div>
 
         </div>
     </div>
 </section>
 
-<?php require_once __DIR__ . '/' . ($role === 'doctor' ? 'admin/staff-footer.php' : 'footer.php'); ?>
+<?php require_once __DIR__ . '/' . ($usesStaffHeader ? 'admin/staff-footer.php' : 'footer.php'); ?>

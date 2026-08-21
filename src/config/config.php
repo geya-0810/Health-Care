@@ -23,8 +23,13 @@ ini_set('error_log', __DIR__ . '/../log/php_errors.log');
 date_default_timezone_set($_ENV['APP_TIMEZONE'] ?? 'Asia/Kuala_Lumpur');
 
 // ---------- App constants ----------
-define('APP_URL', rtrim($_ENV['BASE_URL'] ?? 'http://localhost/Cloud_Computing/public', '/'));
-define('STORAGE_DRIVER', $_ENV['STORAGE_DRIVER'] ?? 'local'); // 'local' | 's3' - change only this .env value when migrating to the cloud.
+$rawBaseUrl = rtrim($_ENV['BASE_URL'] ?? 'http://localhost/Cloud_Computing/public', '/');
+if (!preg_match('#^https?://#i', $rawBaseUrl)) {
+    $rawBaseUrl = 'http://' . $rawBaseUrl;
+}
+define('APP_URL', $rawBaseUrl);
+define('STORAGE_DRIVER', $_ENV['STORAGE_DRIVER'] ?? 'local'); 
+define('UPLOADS_DIR', $_ENV['UPLOADS_DIR'] ?? 'C:/xampp/htdocs/Cloud%20Computing/storage/'); 
 
 // ---------- Autoload project classes (no Composer PSR-4, simple require map) ----------
 require_once __DIR__ . '/../database/Database.php';

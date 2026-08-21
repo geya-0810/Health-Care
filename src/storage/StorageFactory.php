@@ -12,4 +12,10 @@ class StorageFactory
             default => new LocalStorage(),
         };
     }
+
+    public static function generateKey(string $folder, string $originalFilename): string
+    {
+        $ext = strtolower(pathinfo($originalFilename, PATHINFO_EXTENSION));
+        return sprintf('%s/%s/%s.%s', trim($folder, '/'), date('Y/m'), uniqid('', true), $ext);
+    }
 }

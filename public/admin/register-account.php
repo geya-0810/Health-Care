@@ -42,10 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($type === 'doctor') {
                     Doctor::create($db, [
                         'user_id'          => $user['user_id'],
-                        'full_name'        => $fullName,
                         'specialty'        => trim($_POST['specialty']),
-                        'email'            => $email,
-                        'phone'            => $phone,
                         'bio'              => trim($_POST['bio'] ?? ''),
                         'consultation_fee' => (float) ($_POST['consultation_fee'] ?? 0),
                     ]);

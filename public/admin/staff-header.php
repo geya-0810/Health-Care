@@ -12,6 +12,7 @@ $navByRole = [
             ['href' => 'manage-accounts.php', 'label' => 'Accounts'],
             ['href' => 'manage-schedules.php','label' => 'Schedules'],
             ['href' => 'reports.php',         'label' => 'Reports'],
+            ['href' => '../profile.php',      'label' => 'My Account'],
         ],
     ],
     'assist' => [
@@ -19,6 +20,7 @@ $navByRole = [
         'links' => [
             ['href' => 'manage-schedules.php', 'label' => 'Schedules'],
             ['href' => 'manage-accounts.php',  'label' => 'Patients'],
+            ['href' => '../profile.php',       'label' => 'My Account'],
         ],
     ],
     'doctor' => [

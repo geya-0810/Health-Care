@@ -51,8 +51,6 @@ class User
         ]);
     }
 
-
-
     public static function update(PDO $db, int $id, array $data): bool
     {
         $stmt = $db->prepare(
@@ -63,6 +61,15 @@ class User
             'full_name' => $data['full_name'],
             'email'     => $data['email'],
             'phone'     => $data['phone'] ?? null,
+            'id'        => $id,
+        ]);
+    }
+
+    public static function updateAvatar(PDO $db, int $id, string $avatarUrl): bool
+    {
+        $stmt = $db->prepare('UPDATE users SET avatar_url = :avatar_url WHERE user_id = :id');
+        return $stmt->execute([
+            'avatar_url' => $avatarUrl,
             'id'        => $id,
         ]);
     }

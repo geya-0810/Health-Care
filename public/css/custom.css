@@ -120,3 +120,13 @@
 .badge-status-cancelled { background: #FBE7E7; color: #C24545; }
 .badge-status-completed { background: #E9E9E9; color: #6B6B6B; }
 .badge-status-pending    { background: #FFF3D6; color: #A97A0B; }
+
+.profile-form {
+    max-width:500px;
+    margin: 0 15px;
+}
+.profile-form-btn {
+    background:#8BC63F;
+    border-color:#8BC63F;
+    margin-left: -15px;
+}
