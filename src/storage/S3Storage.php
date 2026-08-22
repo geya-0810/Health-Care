@@ -33,13 +33,17 @@ class S3Storage implements StorageInterface
                 'key'    => $_ENV['AWS_ACCESS_KEY_ID'],
                 'secret' => $_ENV['AWS_SECRET_ACCESS_KEY'],
             ];
+            if (!empty($_ENV['AWS_SESSION_TOKEN'] ?? '')) {
+                $config['credentials']['token'] = $_ENV['AWS_SESSION_TOKEN'];
+            }
         }
-
+        
         $this->client = new S3Client($config);
     }
 
     public function upload(string $tmpFilePath, string $destinationKey, bool $public = true): string
     {
+        $this->validateFile($tmpFilePath, $destinationKey);
         try {
             $result = $this->client->putObject([
                 'Bucket'     => $this->bucket,

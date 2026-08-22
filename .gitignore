@@ -5,6 +5,5 @@ storage/*
 vendor/*
 composer.*
 *.backup.*
-database/seed.sql
 src/storage/LocalStorage.php
 public/media.php

@@ -4,7 +4,7 @@ CREATE DATABASE IF NOT EXISTS health_care
 
 USE health_care;
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     user_id         INT AUTO_INCREMENT PRIMARY KEY,
     full_name       VARCHAR(100)        NOT NULL,
     email           VARCHAR(150)        NOT NULL UNIQUE,
@@ -16,7 +16,7 @@ CREATE TABLE users (
     updated_at      TIMESTAMP           DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
-CREATE TABLE doctors (  
+CREATE TABLE IF NOT EXISTS doctors (  
     doctor_id       INT AUTO_INCREMENT PRIMARY KEY,
     user_id         INT                 NULL UNIQUE,
     specialty       VARCHAR(100)        NOT NULL,  
@@ -27,10 +27,10 @@ CREATE TABLE doctors (
     created_at      TIMESTAMP           DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP           DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
-CREATE TABLE schedules (
+CREATE TABLE IF NOT EXISTS schedules (
     schedule_id     INT AUTO_INCREMENT PRIMARY KEY,
     doctor_id       INT                 NOT NULL,
     slot_date       DATE                NOT NULL,
@@ -45,12 +45,12 @@ CREATE TABLE schedules (
 ) ENGINE=InnoDB;
 CREATE INDEX idx_schedules_doctor_date ON schedules(doctor_id, slot_date, status);
 
-CREATE TABLE appointments (
+CREATE TABLE IF NOT EXISTS appointments (
     appointment_id  INT AUTO_INCREMENT PRIMARY KEY,
     patient_id      INT                 NOT NULL,
     doctor_id       INT                 NOT NULL,
     schedule_id     INT                 NOT NULL UNIQUE, 
-    status          ENUM('confirmed', 'cancelled', 'completed', 'no_show') NOT NULL DEFAULT 'confirmed',
+    status          ENUM('confirmed', 'cancelled', 'completed', 'no_show', 'pending') NOT NULL DEFAULT 'confirmed',
     visit_type      ENUM('new_case', 'follow_up', 'specialist_referral', 'other') NOT NULL DEFAULT 'new_case',
     reason          VARCHAR(255),               
     booked_at       TIMESTAMP           DEFAULT CURRENT_TIMESTAMP,
@@ -63,7 +63,7 @@ CREATE TABLE appointments (
 CREATE INDEX idx_appointments_patient ON appointments(patient_id, status);
 CREATE INDEX idx_appointments_doctor  ON appointments(doctor_id, status);
 
-CREATE TABLE notifications (
+CREATE TABLE IF NOT EXISTS notifications (
     notification_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id          INT                 NOT NULL,
     appointment_id   INT,                         
@@ -76,13 +76,13 @@ CREATE TABLE notifications (
 ) ENGINE=InnoDB;
 CREATE INDEX idx_notifications_user ON notifications(user_id, is_read);
 
-CREATE TABLE attachments (
-    attachment_id   INT AUTO_INCREMENT PRIMARY KEY,
-    appointment_id  INT                 NOT NULL,
-    file_name       VARCHAR(255)        NOT NULL,
-    file_url        VARCHAR(500)        NOT NULL,   
-    file_type       VARCHAR(50),                    
-    uploaded_at     TIMESTAMP           DEFAULT CURRENT_TIMESTAMP,
+-- CREATE TABLE IF NOT EXISTS attachments (
+--     attachment_id   INT AUTO_INCREMENT PRIMARY KEY,
+--     appointment_id  INT                 NOT NULL,
+--     file_name       VARCHAR(255)        NOT NULL,
+--     file_url        VARCHAR(500)        NOT NULL,   
+--     file_type       VARCHAR(50),                    
+--     uploaded_at     TIMESTAMP           DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id) ON DELETE CASCADE
-) ENGINE=InnoDB;
+--     FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id) ON DELETE CASCADE
+-- ) ENGINE=InnoDB;
