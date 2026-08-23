@@ -50,7 +50,7 @@ require_once __DIR__ . '/../services/NotificationService.php';
 require_once __DIR__ . '/../middleware/AuthMiddleware.php';
 require_once __DIR__ . '/../storage/StorageInterface.php';
 if (STORAGE_DRIVER === 'local') {
-    // require_once __DIR__ . '/../storage/LocalStorage.php';
+    require_once __DIR__ . '/../storage/LocalStorage.php';
 }
 require_once __DIR__ . '/../storage/S3Storage.php';
 require_once __DIR__ . '/../storage/StorageFactory.php';
