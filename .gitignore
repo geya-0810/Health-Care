@@ -7,3 +7,4 @@ composer.*
 *.backup.*
 src/storage/LocalStorage.php
 public/media.php
+*.html

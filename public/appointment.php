@@ -39,7 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
             exit;
         } catch (RuntimeException $e) {
             // For example, another user booked the slot first; reload the latest availability.
-            $errors[] = $e->getMessage();
+               error_log('Booking failed: ' . $e->getMessage());
+               $errors[] = appErrorMessage($e, 'The appointment could not be booked. Please report this issue to 24035081@imail.sunway.edu.my with screenshot.');
             $availableSlots = Schedule::availableSlots($db, $selectedDoctorId, $selectedDate);
         } catch (Throwable $e) {
             error_log('Booking failed: ' . $e->getMessage());

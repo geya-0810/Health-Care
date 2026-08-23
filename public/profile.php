@@ -30,7 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $booking->confirmAppointment($appointmentId, $myDoctorId);
             $notices[] = 'Appointment confirmed. The patient has been notified.';
         } catch (RuntimeException $e) {
-            $errors[] = $e->getMessage();
+            error_log('Confirm appointment failed: ' . $e->getMessage());
+            $errors[] = appErrorMessage($e, 'The appointment could not be confirmed. Please report this issue to 24035081@imail.sunway.edu.my with screenshot.');
         } catch (Throwable $e) {
             error_log('Confirm appointment failed: ' . $e->getMessage());
             $errors[] = 'Something went wrong. Please try again.';
@@ -45,7 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $booking->cancelAppointment($appointmentId, $ownerPatientId);
             $notices[] = 'Appointment cancelled.';
         } catch (RuntimeException $e) {
-            $errors[] = $e->getMessage();
+            error_log('Cancel appointment failed: ' . $e->getMessage());
+            $errors[] = appErrorMessage($e, 'The appointment could not be cancelled. Please report this issue to 24035081@imail.sunway.edu.my with screenshot.');
         } catch (Throwable $e) {
             error_log('Cancel appointment failed: ' . $e->getMessage());
             $errors[] = 'Something went wrong. Please try again.';
@@ -78,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $notices[] = 'Profile and avatar updated.';
                     } catch (Throwable $e) {
                         error_log('Avatar upload failed: ' . $e->getMessage());
-                        $errors[] = 'Profile saved, but the avatar upload failed: ' . $e->getMessage();
+                        $errors[] = appErrorMessage($e, 'Profile saved, but the avatar upload failed. Please report this issue to 24035081@imail.sunway.edu.my with screenshot.');
                     }
                 } else {
                     $notices[] = 'Profile updated.';

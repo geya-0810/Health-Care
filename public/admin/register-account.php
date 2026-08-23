@@ -42,38 +42,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($type === 'doctor') {
                     Doctor::create($db, [
                         'user_id'          => $user['user_id'],
+                        'full_name'        => $fullName,
                         'specialty'        => trim($_POST['specialty']),
+                        'email'            => $email,
+                        'phone'            => $phone,
                         'bio'              => trim($_POST['bio'] ?? ''),
                         'consultation_fee' => (float) ($_POST['consultation_fee'] ?? 0),
                     ]);
                 }
 
                 $db->commit();
-
+                
                 $roleLabel = ['doctor' => 'Doctor', 'assist' => 'Assistant', 'patient' => 'Patient'][$type];
-                (new MailService())->sendAccountCredentials($user, $result['password'], $roleLabel);
-
-                header('Location: manage-accounts.php?created=1');
 
                 // Troubleshooting errors when email sending fails (e.g., SMTP misconfiguration)
-                // $mailSent = (new MailService())->sendAccountCredentials($user, $result['password'], $roleLabel);
-                // if ($mailSent) {
-                //     header('Location: manage-accounts.php?created=1');
-                //     exit;
-                // } else {
-                //     $notices[] = "Account created, but the email could not be sent. "
-                //         . "Please share these credentials with {$fullName} manually — "
-                //         . "Email: {$email} / Temporary password: <strong>{$result['password']}</strong>";
-                // }
+                if (APP_DEBUG) {
+                    $mailSent = (new MailService())->sendAccountCredentials($user, $result['password'], $roleLabel);
+                    if ($mailSent) {
+                        header('Location: manage-accounts.php?created=1');
+                        exit;
+                    } else {
+                        $notices[] = "Account created, but the email could not be sent. "
+                            . "Please share these credentials with {$fullName} manually — "
+                            . "Email: {$email} / Temporary password: <strong>{$result['password']}</strong>";
+                    }
+                } else {
+                    (new MailService())->sendAccountCredentials($user, $result['password'], $roleLabel);
+
+                    header('Location: manage-accounts.php?created=1');
+                }
                 exit;
 
             } catch (RuntimeException $e) {
                 $db->rollBack();
-                $errors[] = $e->getMessage();
+                error_log('Register account failed: ' . $e->getMessage());
+                $errors[] = appErrorMessage($e, 'Account creation failed. Please report this issue to 24035081@imail.sunway.edu.my with screenshot.');
             } catch (Throwable $e) {
                 $db->rollBack();
-                error_log('Register account failed: ' . $e->getMessage());
-                $errors[] = 'Something went wrong while creating the account.';
+                    error_log('Register account failed: ' . $e->getMessage());
+                    $errors[] = appErrorMessage($e, 'Something went wrong while creating the account. Please report this issue to 24035081@imail.sunway.edu.my with screenshot.');
             }
         }
     }
@@ -87,7 +94,11 @@ require_once __DIR__ . '/staff-header.php';
     <div class="container">
         <h2 style="margin-bottom:30px;">Add Account</h2>
         
-        <?php /* foreach ($notices as $n): ?><div class="alert alert-warning"><?= $n ?></div><?php endforeach; */ ?>
+        <?php if (APP_DEBUG == 1): 
+            foreach ($notices as $n): ?>
+                <div class="alert alert-warning"><?= $n ?></div>
+            <?php endforeach; 
+        endif; ?>
         <?php foreach ($errors as $e): ?><div class="alert alert-danger"><?= htmlspecialchars($e) ?></div><?php endforeach; ?>
 
         <form method="post" action="register-account.php" style="max-width:600px;" id="register-form">

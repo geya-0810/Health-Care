@@ -21,7 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = $auth->attemptLogin($email, $password);
         } catch (RuntimeException $e) {
             $user = null;
-            $errors[] = $e->getMessage(); // Message shown when an account is deactivated.
+            error_log('Login failed: ' . $e->getMessage());
+            $errors[] = appErrorMessage($e, 'We could not sign you in. Please report this issue to 24035081@imail.sunway.edu.my with screenshot.');
         }
 
         if ($user) {

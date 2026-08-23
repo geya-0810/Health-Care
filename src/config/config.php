@@ -14,13 +14,19 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // ---------- Error logging ----------
+define('APP_DEBUG', ($_ENV['APP_DEBUG'] ?? '0') === '1');
 error_reporting(E_ALL);
-ini_set('display_errors', ($_ENV['APP_DEBUG'] ?? '0') === '1' ? '1' : '0'); 
-ini_set('display_startup_errors', ($_ENV['APP_DEBUG'] ?? '0') === '1' ? '1' : '0');
+ini_set('display_errors', APP_DEBUG); 
+ini_set('display_startup_errors', APP_DEBUG);
 ini_set('log_errors', '1');
 ini_set('error_log', __DIR__ . '/../log/php_errors.log');
 
 date_default_timezone_set($_ENV['APP_TIMEZONE'] ?? 'Asia/Kuala_Lumpur');
+
+function appErrorMessage(Throwable $exception, string $fallback): string
+{
+    return APP_DEBUG ? $exception->getMessage() . "check php_errors.log for details" : $fallback;
+}
 
 // ---------- App constants ----------
 $rawBaseUrl = rtrim($_ENV['BASE_URL'] ?? 'http://localhost/Cloud_Computing/public', '/');
@@ -44,7 +50,7 @@ require_once __DIR__ . '/../services/NotificationService.php';
 require_once __DIR__ . '/../middleware/AuthMiddleware.php';
 require_once __DIR__ . '/../storage/StorageInterface.php';
 if (STORAGE_DRIVER === 'local') {
-    require_once __DIR__ . '/../storage/LocalStorage.php';
+    // require_once __DIR__ . '/../storage/LocalStorage.php';
 }
 require_once __DIR__ . '/../storage/S3Storage.php';
 require_once __DIR__ . '/../storage/StorageFactory.php';

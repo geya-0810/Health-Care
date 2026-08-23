@@ -40,7 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         } catch (RuntimeException $e) {
             // Business errors such as an already-registered email.
-            $errors[] = $e->getMessage();
+            error_log('Registration failed: ' . $e->getMessage());
+            $errors[] = appErrorMessage($e, 'Registration could not be completed. Please report this issue to 24035081@imail.sunway.edu.my with screenshot.');
         } catch (Throwable $e) {
             error_log('Registration failed: ' . $e->getMessage());
             $errors[] = 'Something went wrong. Please try again later.';

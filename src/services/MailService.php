@@ -2,15 +2,6 @@
 // src/services/MailService.php
 //
 // composer require phpmailer/phpmailer
-//
-// Required in .env (Amazon SES SMTP interface is recommended in the cloud; Gmail App Password works for local development):
-//   SMTP_HOST=email-smtp.ap-southeast-1.amazonaws.com   (SES) or smtp.gmail.com (local testing)
-//   SMTP_PORT=587
-//   SMTP_USERNAME=...
-//   SMTP_PASSWORD=...
-//   SMTP_ENCRYPTION=tls
-//   MAIL_FROM_ADDRESS=noreply@yourclinic.com
-//   MAIL_FROM_NAME="Health Center"
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
