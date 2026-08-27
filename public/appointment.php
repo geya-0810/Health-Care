@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
 
     if (!$scheduleId) {
         $errors[] = 'Please select an available time slot.';
-    } elseif (!in_array($visitType, ['new_case', 'follow_up', 'specialist_referral'], true)) {
+    } elseif (!in_array($visitType, ['new_case', 'follow_up', 'specialist_referral', 'other'], true)) {
         $errors[] = 'Invalid visit type.';
     } else {
         try {
@@ -123,9 +123,9 @@ require_once __DIR__ . '/header.php';
                                                   <div class="row">
                                                        <?php foreach ($availableSlots as $slot): ?>
                                                             <div class="col-md-4 col-sm-4" style="margin-bottom:10px;">
-                                                                 <label style="font-weight:normal;">
+                                                                 <label style="font-weight:normal;display:flex;align-items:center;">
                                                                       <input type="radio" name="schedule_id"
-                                                                             value="<?= (int) $slot['schedule_id'] ?>" required>
+                                                                             value="<?= (int) $slot['schedule_id'] ?>" required style="margin-right:10px;">
                                                                       <?= substr($slot['start_time'], 0, 5) ?> - <?= substr($slot['end_time'], 0, 5) ?>
                                                                  </label>
                                                             </div>
@@ -140,6 +140,7 @@ require_once __DIR__ . '/header.php';
                                                   <option value="new_case">New Case</option>
                                                   <option value="follow_up">Follow-up Visit</option>
                                                   <option value="specialist_referral">Specialist Referral</option>
+                                                  <option value="other">Other</option>
                                              </select>
                                         </div>
 

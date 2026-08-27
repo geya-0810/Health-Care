@@ -22,8 +22,8 @@ CREATE TABLE IF NOT EXISTS doctors (
     user_id         INT                 NULL UNIQUE,
     specialty       VARCHAR(100)        NOT NULL,  
     bio             TEXT,
-    profile_image_url VARCHAR(255),                 
-    consultation_fee DECIMAL(10,2)      DEFAULT 0.00
+    -- profile_image_url VARCHAR(255),                 
+    consultation_fee DECIMAL(10,2)      DEFAULT 0.00,
     
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
@@ -39,9 +39,9 @@ CREATE TABLE IF NOT EXISTS schedules (
 
     FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id) ON DELETE CASCADE,
 
-    UNIQUE KEY uq_doctor_slot (doctor_id, slot_date, start_time)
+    UNIQUE KEY uq_doctor_slot (doctor_id, slot_date, start_time),
+    INDEX idx_schedules_doctor_date (doctor_id, slot_date, status)
 ) ENGINE=InnoDB;
-CREATE INDEX idx_schedules_doctor_date ON schedules(doctor_id, slot_date, status);
 
 CREATE TABLE IF NOT EXISTS appointments (
     appointment_id  INT AUTO_INCREMENT PRIMARY KEY,
@@ -56,10 +56,10 @@ CREATE TABLE IF NOT EXISTS appointments (
 
     FOREIGN KEY (patient_id)  REFERENCES users(user_id)      ON DELETE CASCADE,
     FOREIGN KEY (doctor_id)   REFERENCES doctors(doctor_id)  ON DELETE CASCADE,
-    FOREIGN KEY (schedule_id) REFERENCES schedules(schedule_id) ON DELETE CASCADE
+    FOREIGN KEY (schedule_id) REFERENCES schedules(schedule_id) ON DELETE CASCADE,
+    INDEX idx_appointments_patient (patient_id, status),
+    INDEX idx_appointments_doctor  (doctor_id, status)
 ) ENGINE=InnoDB;
-CREATE INDEX idx_appointments_patient ON appointments(patient_id, status);
-CREATE INDEX idx_appointments_doctor  ON appointments(doctor_id, status);
 
 CREATE TABLE IF NOT EXISTS notifications (
     notification_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -70,9 +70,9 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at       TIMESTAMP           DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (user_id)        REFERENCES users(user_id)               ON DELETE CASCADE,
-    FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id) ON DELETE SET NULL
+    FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id) ON DELETE SET NULL,
+    INDEX idx_notifications_user (user_id, is_read)
 ) ENGINE=InnoDB;
-CREATE INDEX idx_notifications_user ON notifications(user_id, is_read);
 
 -- CREATE TABLE IF NOT EXISTS attachments (
 --     attachment_id   INT AUTO_INCREMENT PRIMARY KEY,
