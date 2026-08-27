@@ -5,7 +5,7 @@ class Doctor
 {
     public static function all(PDO $db, bool $activeOnly = true): array
     {
-        $sql = 'SELECT d.*, u.full_name, u.email, u.phone
+        $sql = 'SELECT d.*, u.full_name, u.email, u.phone, u.avatar_url
                 FROM doctors d
                 LEFT JOIN users u ON u.user_id = d.user_id';
         if ($activeOnly) {
@@ -18,7 +18,7 @@ class Doctor
     public static function findByUserId(PDO $db, int $userId): ?array
     {
         $stmt = $db->prepare(
-            'SELECT d.*, u.full_name, u.email, u.phone
+            'SELECT d.*, u.full_name, u.email, u.phone, u.avatar_url
              FROM doctors d
              LEFT JOIN users u ON u.user_id = d.user_id
              WHERE d.user_id = :user_id LIMIT 1'
@@ -31,7 +31,7 @@ class Doctor
     public static function findById(PDO $db, int $id): ?array
     {
         $stmt = $db->prepare(
-            'SELECT d.*, u.full_name, u.email, u.phone
+            'SELECT d.*, u.full_name, u.email, u.phone, u.avatar_url
              FROM doctors d
              LEFT JOIN users u ON u.user_id = d.user_id
              WHERE d.doctor_id = :id LIMIT 1'
@@ -61,14 +61,13 @@ class Doctor
     {
         $stmt = $db->prepare(
             'UPDATE doctors SET specialty=:specialty, bio=:bio,
-             consultation_fee=:consultation_fee, is_active=:is_active
+             consultation_fee=:consultation_fee
              WHERE doctor_id=:id'
         );
         return $stmt->execute([
             'specialty'        => $data['specialty'],
             'bio'              => $data['bio'] ?? null,
             'consultation_fee' => $data['consultation_fee'] ?? 0,
-            'is_active'        => $data['is_active'] ?? 1,
             'id'               => $id,
         ]);
     }

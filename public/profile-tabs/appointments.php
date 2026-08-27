@@ -1,7 +1,7 @@
 <?php
 // public/profile-tabs/appointments.php
-// 被 profile.php require，共用它已经算好的 $role / $pending / $upcoming / $past / $formPrefix 等变量
-// 不要直接用浏览器打开这个文件——它不是独立页面，没有自己的header/footer
+// Required by profile.php; shares its prepared $role / $pending / $upcoming / $past / $formPrefix variables.
+// Do not open this file directly in a browser; it is not a standalone page and has no header/footer.
 
 if ($role === 'doctor'): ?>
     <h4>Pending Requests (<?= count($pending) ?>)</h4>

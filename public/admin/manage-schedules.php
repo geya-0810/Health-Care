@@ -1,6 +1,6 @@
 <?php
 // public/admin/manage-schedules.php
-//    用法： $embedded = true; require __DIR__ . '/admin/manage-schedules.php';
+//    Usage: $embedded = true; require __DIR__ . '/admin/manage-schedules.php';
 
 $embedded = $embedded ?? false;
 
@@ -10,7 +10,7 @@ $role = $_SESSION['role'] ?? '';
 
 if (!$embedded) {
     require_once __DIR__ . '/../../src/config/config.php';
-    // 独立访问时才做权限检查——嵌入模式下profile.php已经AuthMiddleware::requireLogin()过了
+    // Check permissions only for standalone access; profile.php already called AuthMiddleware::requireLogin() in embedded mode.
     AuthMiddleware::requireRole(['admin', 'assist']);
 }
 
@@ -18,13 +18,13 @@ $db      = Database::getConnection();
 $errors  = $errors ?? [];
 $notices = $notices ?? [];
 
-// 嵌入模式 + doctor角色 = 只能管自己的排班，不能选别的医生
+// Embedded mode + doctor role = manage only the doctor's own schedule; other doctors cannot be selected.
 $isDoctorEmbedded = $embedded && $role === 'doctor';
 
 if ($isDoctorEmbedded) {
     $myDoctor =  $myDoctor ?? Doctor::findByUserId($db, $_SESSION['user_id']);
     $lockedDoctorId = $myDoctor['doctor_id'] ?? 0;
-    $doctors = []; // 不需要下拉选择器
+    $doctors = []; // No doctor dropdown is needed.
 } else {
     $lockedDoctorId = null;
     $doctors = Doctor::all($db);
@@ -36,9 +36,9 @@ $selectedDoctorId = $isDoctorEmbedded
 
 $selectedDate = $_GET['schedule_date'] ?? $_GET['date'] ?? date('Y-m-d');
 
-// ---------- 新增slot ----------
+// ---------- Add slot ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_slot') {
-    // doctor嵌入模式下，doctor_id永远用锁定的自己的id，不信任POST传来的值
+    // In embedded doctor mode, always use the doctor's locked ID and never trust the POST value.
     $doctorId  = $isDoctorEmbedded ? $lockedDoctorId : (int) $_POST['doctor_id'];
     $date      = $_POST['slot_date'];
     $startTime = $_POST['start_time'];
@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_s
             Schedule::create($db, $doctorId, $date, $startTime, $endTime);
             $notices[] = 'Time slot added.';
         } catch (PDOException $e) {
-            // UNIQUE约束撞上了：同一医生同一天同一时间已经开过slot
+            // The UNIQUE constraint was hit: this doctor already has a slot at this date and time.
             $errors[] = 'This exact time slot already exists on this date.';
         }
     }
@@ -59,12 +59,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_s
     $selectedDate     = $date;
 }
 
-// ---------- 删除slot（只能删还没被约的） ----------
+// ---------- Delete slot (only slots without bookings can be deleted) ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_slot') {
     $scheduleId = (int) $_POST['schedule_id'];
     $slot = Schedule::findById($db, $scheduleId);
 
-    // doctor嵌入模式下多一层检查：这个slot必须是自己的，不能删别的医生的
+    // Embedded doctor mode adds a check: the slot must belong to this doctor.
     $ownsThisSlot = !$isDoctorEmbedded || ($slot && (int) $slot['doctor_id'] === $lockedDoctorId);
 
     if ($slot && $ownsThisSlot && Schedule::delete($db, $scheduleId)) {
@@ -87,7 +87,6 @@ if (!$embedded) {
 ?>
 
 <?php if (!$embedded): ?>
-<section style="padding:60px 0; min-height:70vh;">
     <div class="container">
         <h2 style="margin-bottom:30px;">Manage Schedules</h2>
         <p class="text-muted">As <?= htmlspecialchars($role) ?>, you can view and manage every doctor's schedule.</p>
@@ -98,7 +97,7 @@ if (!$embedded) {
         <?php foreach ($errors as $e): ?><div class="alert alert-danger"><?= htmlspecialchars($e) ?></div><?php endforeach; ?>
         <?php endif; ?>
 
-        <!-- Doctor + date filter：doctor嵌入模式不需要选医生，直接跳过这块 -->
+        <!-- Doctor + date filter: embedded doctor mode skips the doctor selector. -->
         <?php if (!$isDoctorEmbedded): ?>
         <form method="get" action="<?= $formAction ?>" class="form-inline" style="margin-bottom:24px;">
             <div class="form-group" style="margin-right:10px;">
@@ -196,7 +195,6 @@ if (!$embedded) {
 
 <?php if (!$embedded): ?>
     </div>
-</section>
 
 <?php require_once __DIR__ . '/staff-footer.php'; ?>
 <?php endif; ?>

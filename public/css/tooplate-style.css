@@ -821,8 +821,7 @@ http://www.tooplate.com/view/2098-health
   -----------------------------------------*/
 
   footer {
-    padding-top: 80px;
-    padding-bottom: 40px;
+    padding: 20px 0;
   }
 
   footer h4 {

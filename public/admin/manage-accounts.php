@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
         $db->beginTransaction();
         try {
             Doctor::update($db, $doctorId, [
-                'specialty' => $specialty, 'bio' => $bio, 'consultation_fee' => $fee, 'is_active' => $isActive,
+                'specialty' => $specialty, 'bio' => $bio, 'consultation_fee' => $fee,
             ]);
             if ($userId) {
                 User::adminUpdate($db, $userId, [
@@ -149,7 +149,6 @@ $pageTitle = 'Manage Accounts';
 require_once __DIR__ . '/staff-header.php';
 ?>
 
-<section style="padding:60px 0; min-height:70vh;">
     <div class="container">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;">
             <h2 style="margin:0;">Manage Accounts</h2>
@@ -306,6 +305,5 @@ require_once __DIR__ . '/staff-header.php';
         </table>
 
     </div>
-</section>
 
 <?php require_once __DIR__ . '/staff-footer.php'; ?>

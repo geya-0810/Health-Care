@@ -44,4 +44,8 @@ require_once __DIR__ . '/header.php';
                </div>
           </div>
      </section>
-<?php require_once __DIR__ . '/footer.php'; ?>
+
+<?php 
+    $embedded = true;
+     require_once __DIR__ . '/about_us.php';
+require_once __DIR__ . '/footer.php'; ?>

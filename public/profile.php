@@ -23,7 +23,7 @@ if (isset($_GET['booked'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
-    // 医生确认预约（只有doctor角色能触发，且只能确认自己的预约）
+    // Doctor confirms an appointment; only the doctor role can confirm their own appointments.
     if ($action === 'confirm_appointment' && $role === 'doctor' && $myDoctorId) {
         $appointmentId = (int) ($_POST['appointment_id'] ?? 0);
         try {
@@ -38,11 +38,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // 取消预约（patient取消自己的；doctor取消自己名下的）
+    // Cancel appointment; patients cancel their own, while doctors cancel appointments assigned to them.
     if ($action === 'cancel_appointment') {
         $appointmentId = (int) ($_POST['appointment_id'] ?? 0);
         try {
-            $ownerPatientId = $role === 'patient' ? $userId : null; // doctor取消时不做patient归属检查
+            $ownerPatientId = $role === 'patient' ? $userId : null; // Doctors do not need a patient ownership check.
             $booking->cancelAppointment($appointmentId, $ownerPatientId);
             $notices[] = 'Appointment cancelled.';
         } catch (RuntimeException $e) {
@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // 更新个人资料（含头像上传）
+    // Update profile, including avatar upload.
     if ($action === 'update_profile') {
         $fullName = trim($_POST['full_name'] ?? '');
         $email    = trim($_POST['email'] ?? '');
@@ -67,11 +67,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 User::update($db, $userId, ['full_name' => $fullName, 'email' => $email, 'phone' => $phone]);
                 $_SESSION['full_name'] = $fullName;
 
-                // 头像是可选的，没选文件就跳过，不报错
+                // Avatar is optional; skip it without an error when no file is selected.
                 if (!empty($_FILES['avatar']['name']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
                     try {
-                        // doctor/admin/assist 存 avatar/staff/，patient 存 avatar/user/
-                        // 对应 storage/avatar/staff 和 storage/avatar/user 这两个文件夹
+                        // Doctors/admins/assistants use avatar/staff/; patients use avatar/user/.
+                        // These correspond to the storage/avatar/staff and storage/avatar/user folders.
                         $avatarFolder = in_array($role, ['doctor', 'admin', 'assist'], true) ? 'avatar/staff' : 'avatar/user';
 
                         $key = StorageFactory::generateKey($avatarFolder, $_FILES['avatar']['name']);
@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // 修改密码
+    // Change password.
     if ($action === 'change_password') {
         $current = $_POST['current_password'] ?? '';
         $new     = $_POST['new_password'] ?? '';

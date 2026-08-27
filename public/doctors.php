@@ -94,8 +94,8 @@ require_once __DIR__ . '/header.php';
                               $delay = 0.2 + (($counter % 3) * 0.2);
                               if ($delay == 0.2) $delay = 0.8;   
                               
-                              $profile_image = !empty($doctor['profile_image_url']) 
-                                   ? htmlspecialchars($doctor['profile_image_url']) 
+                              $profile_image = !empty($doctor['avatar_url']) 
+                                   ? htmlspecialchars($doctor['avatar_url']) 
                                    : 'images/team-image1.jpg';
                     ?>
                     <div class="col-md-4 col-sm-6">

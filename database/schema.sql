@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS users (
     phone           VARCHAR(20),
     avatar_url      VARCHAR(500),
     role            ENUM('patient', 'doctor', 'assist', 'admin') NOT NULL DEFAULT 'patient',
-    is_active       BOOLEAN             DEFAULT TRUE,    created_at      TIMESTAMP           DEFAULT CURRENT_TIMESTAMP,
+    is_active       BOOLEAN             DEFAULT TRUE,    
+    created_at      TIMESTAMP           DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP           DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
@@ -22,10 +23,7 @@ CREATE TABLE IF NOT EXISTS doctors (
     specialty       VARCHAR(100)        NOT NULL,  
     bio             TEXT,
     profile_image_url VARCHAR(255),                 
-    consultation_fee DECIMAL(10,2)      DEFAULT 0.00,
-    is_active       BOOLEAN             DEFAULT TRUE,  
-    created_at      TIMESTAMP           DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP           DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    consultation_fee DECIMAL(10,2)      DEFAULT 0.00
     
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

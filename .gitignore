@@ -1,5 +1,6 @@
 file structure.txt
 *.log
+# !src/log/
 .env
 storage/*
 vendor/*

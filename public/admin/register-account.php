@@ -90,7 +90,6 @@ $pageTitle = 'Add Account';
 require_once __DIR__ . '/staff-header.php';
 ?>
 
-<section style="padding:60px 0; min-height:70vh;">
     <div class="container">
         <h2 style="margin-bottom:30px;">Add Account</h2>
         
@@ -154,7 +153,6 @@ require_once __DIR__ . '/staff-header.php';
         </form>
 
     </div>
-</section>
 
 <script>
 function toggleFields() {

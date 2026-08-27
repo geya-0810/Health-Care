@@ -9,6 +9,17 @@
     --radius: 10px;
 }
 
+.navbar {
+    flex-wrap: nowrap;
+}
+.navbar-nav {
+    flex-direction: row;
+}
+#home .container {
+    margin: 0;
+    max-width: 100%;
+    padding: 0;
+}
 /* ---------- Auth pages (login/register) ---------- */
 /* .auth-wrapper { min-height: calc(100vh - 160px); } */
 .auth-visual {
@@ -33,6 +44,7 @@
     font-weight: 600;
     font-size: 2rem;
     margin-top: 10px;
+    color: #fff;
 }
 .auth-card {
     background: #fff;

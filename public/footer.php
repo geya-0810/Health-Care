@@ -6,16 +6,16 @@
                     <div class="col-md-4 col-sm-4">
                          <div class="footer-thumb"> 
                               <h4 class="wow fadeInUp" data-wow-delay="0.4s">Contact Info</h4>
-                              <p>Fusce at libero iaculis, venenatis augue quis, pharetra lorem. Curabitur ut dolor eu elit consequat ultricies.</p>
+                              <p><a href="https://maps.app.goo.gl/HHCnXZNqrzxKtQPH7" target="_blank">5, Jalan Lagoon Selatan, Bandar Sunway, 47500 Petaling Jaya, Selangor</a></p>
 
                               <div class="contact-info">
-                                   <p><i class="fa fa-phone"></i> 010-070-0170</p>
-                                   <p><i class="fa fa-envelope-o"></i> <a href="#">info@company.com</a></p>
+                                   <p><a href="tel:+60173779880"><i class="fa fa-phone"></i> +60 17-377 9880</a></p>
+                                   <p><a href="mailto:00ying10fu8@gmail.com"><i class="fa fa-envelope-o"></i> 00ying10fu8@gmail.com</a></p>
                               </div>
                          </div>
                     </div>
 
-                    <div class="col-md-4 col-sm-4"> 
+                    <!-- <div class="col-md-4 col-sm-4"> 
                          <div class="footer-thumb"> 
                               <h4 class="wow fadeInUp" data-wow-delay="0.4s">Latest News</h4>
                               <div class="latest-stories">
@@ -38,15 +38,22 @@
                                    </div>
                               </div>
                          </div>
-                    </div>
+                    </div> -->
 
                     <div class="col-md-4 col-sm-4"> 
                          <div class="footer-thumb">
                               <div class="opening-hours">
                                    <h4 class="wow fadeInUp" data-wow-delay="0.4s">Opening Hours</h4>
-                                   <p>Monday - Friday <span>06:00 AM - 10:00 PM</span></p>
-                                   <p>Saturday <span>09:00 AM - 08:00 PM</span></p>
-                                   <p>Sunday <span>Closed</span></p>
+                                   <p><i class="fa fa-clock-o"></i> <span>Open 24/7 Every Day</span></p>
+                                   <p>Monday - Sunday <span>24 hours</span></p>
+                              </div> 
+                         </div>
+                    </div>
+
+                    <div class="col-md-4 col-sm-4"> 
+                         <div class="footer-thumb">
+                              <div class="opening-hours">
+                                   <h4 class="wow fadeInUp" data-wow-delay="0.4s">Follow Us</h4>
                               </div> 
 
                               <ul class="social-icon">
@@ -60,9 +67,7 @@
                     <div class="col-md-12 col-sm-12 border-top">
                          <div class="col-md-4 col-sm-6">
                               <div class="copyright-text"> 
-                                   <p>Copyright &copy; 2017 Your Company 
-                                   
-                                   | Design: <a href="http://www.tooplate.com" target="_parent">Tooplate</a></p>
+                                   <p>&copy; <?= date('Y') ?> Health Center</p>
                               </div>
                          </div>
                          <div class="col-md-6 col-sm-6">

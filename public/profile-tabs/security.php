@@ -1,6 +1,6 @@
 <?php
 // public/profile-tabs/security.php
-// 被 profile.php require，共用它已经算好的 $formPrefix 变量
+// Required by profile.php; shares its prepared $formPrefix variable.
 ?>
 <form method="post" action="<?= $formPrefix ?>profile.php" class="form-horizontal profile-form">
     <input type="hidden" name="action" value="change_password">

@@ -75,3 +75,5 @@ $roleLabel  = ['admin' => 'Admin', 'assist' => 'Assistant', 'doctor' => 'Doctor'
         </div>
     </div>
 </nav>
+
+<section style="padding:60px 0; min-height:82vh;">

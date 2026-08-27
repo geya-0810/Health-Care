@@ -23,7 +23,6 @@ $pageTitle = 'Admin Dashboard';
 require_once __DIR__ . '/staff-header.php';
 ?>
 
-<section style="padding:60px 0; min-height:70vh;">
     <div class="container">
         <h2 style="margin-bottom:30px;">Admin Dashboard</h2>
 
@@ -89,6 +88,5 @@ require_once __DIR__ . '/staff-header.php';
             </tbody>
         </table>
     </div>
-</section>
 
 <?php require_once __DIR__ . '/staff-footer.php'; ?>
