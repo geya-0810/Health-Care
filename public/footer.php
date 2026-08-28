@@ -10,7 +10,7 @@
 
                               <div class="contact-info">
                                    <p><a href="tel:+60173779880"><i class="fa fa-phone"></i> +60 17-377 9880</a></p>
-                                   <p><a href="mailto:00ying10fu8@gmail.com"><i class="fa fa-envelope-o"></i> 00ying10fu8@gmail.com</a></p>
+                                   <p><a href="mailto:24035081@imail.sunway.edu.my"><i class="fa fa-envelope-o"></i> 24035081@imail.sunway.edu.my</a></p>
                               </div>
                          </div>
                     </div>

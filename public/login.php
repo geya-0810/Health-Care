@@ -99,7 +99,7 @@ require_once __DIR__ . '/header.php';
                                 <input class="form-check-input" type="checkbox" id="remember" name="remember">
                                 <label class="form-check-label small text-muted" for="remember">Remember me</label>
                             </div>
-                            <a href="forgot-password.php" class="small">Forgot password?</a>
+                            <a href="#" class="small">Forgot password?</a>
                         </div>
                         <button type="submit" class="btn btn-health w-100 py-2">Log in</button>
                     </form>

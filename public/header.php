@@ -45,9 +45,9 @@
                     </div>
                          
                     <div class="col-md-8 col-sm-7 text-align-right">
-                         <span class="phone-icon"><i class="fa fa-phone"></i> 010-060-0160</span>
-                         <span class="date-icon"><i class="fa fa-calendar-plus-o"></i> 6:00 AM - 10:00 PM (Mon-Fri)</span>
-                         <span class="email-icon"><i class="fa fa-envelope-o"></i> <a href="#">info@company.com</a></span>
+                         <span class="phone-icon"><a href="tel:+60173779880"><i class="fa fa-phone"></i> +60 17-377 9880</a></span>
+                         <span class="date-icon"><i class="fa fa-calendar-plus-o"></i> 24 Hours (Mon-Sun)</span>
+                         <span class="email-icon"><a href="mailto:24035081@imail.sunway.edu.my"><i class="fa fa-envelope-o"></i> 24035081@imail.sunway.edu.my</a></span>
                     </div>
 
                </div>

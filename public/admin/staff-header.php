@@ -18,6 +18,7 @@ $navByRole = [
     'assist' => [
         'home'  => 'manage-schedules.php',
         'links' => [
+            ['href' => 'dashboard.php',       'label' => 'Dashboard'],
             ['href' => 'manage-schedules.php', 'label' => 'Schedules'],
             ['href' => 'manage-accounts.php',  'label' => 'Patients'],
             ['href' => '../profile.php',       'label' => 'My Account'],
@@ -39,14 +40,16 @@ $roleLabel  = ['admin' => 'Admin', 'assist' => 'Assistant', 'doctor' => 'Doctor'
 <!DOCTYPE html>
 <html lang="en">
 <head>
-     <base href="<?php echo APP_URL; ?>/admin/">
-     <title><?= isset($pageTitle) ? htmlspecialchars($pageTitle) . ' — ' : '' ?>Health Center Staff Portal</title>
-     <meta charset="UTF-8">
-     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <base href="<?php echo APP_URL; ?>/admin/">
+    <title><?= isset($pageTitle) ? htmlspecialchars($pageTitle) . ' — ' : '' ?>Health Center Staff Portal</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
-     <link rel="stylesheet" href="../css/bootstrap.min.css">
-     <link rel="stylesheet" href="../css/font-awesome.min.css">
-     <link rel="stylesheet" href="../css/custom.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/font-awesome.min.css">
+    <link rel="stylesheet" href="../css/custom.css">
 </head>
 <body style="background:#F7F7F7;">
 
