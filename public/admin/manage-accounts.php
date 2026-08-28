@@ -112,7 +112,7 @@ if ($isAdmin) {
     $staff = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $stmt = $db->prepare(
-        "SELECT d.*, u.full_name, u.email, u.phone, u.is_active AS account_active FROM doctors d
+        "SELECT d.*, u.full_name, u.email, u.phone, u.is_active FROM doctors d
          LEFT JOIN users u ON u.user_id = d.user_id
          WHERE u.full_name LIKE :q OR d.specialty LIKE :q OR u.email LIKE :q
          ORDER BY u.full_name"
@@ -136,7 +136,7 @@ $editingStaff = ($editType === 'staff' && $isAdmin) ? User::findById($db, $editI
 $editingDoctor = null;
 if ($editType === 'doctor' && $isAdmin) {
     $stmt = $db->prepare(
-        'SELECT d.*, u.full_name, u.email, u.phone
+        'SELECT d.*, u.full_name, u.email, u.phone, u.is_active
          FROM doctors d LEFT JOIN users u ON u.user_id = d.user_id
          WHERE d.doctor_id = :id'
     );

@@ -6,7 +6,7 @@ AuthMiddleware::requireRole('admin');
 
 $db = Database::getConnection();
 
-$totalDoctors     = (int) $db->query("SELECT COUNT(*) FROM doctors WHERE is_active = 1")->fetchColumn();
+$totalDoctors     = (int) $db->query("SELECT COUNT(*) FROM doctors d LEFT JOIN users u ON u.user_id = d.user_id WHERE u.is_active = 1")->fetchColumn();
 $totalPatients    = (int) $db->query("SELECT COUNT(*) FROM users WHERE role = 'patient'")->fetchColumn();
 $todayAppointments = (int) $db->query(
     "SELECT COUNT(*) FROM appointments a JOIN schedules s ON s.schedule_id = a.schedule_id
